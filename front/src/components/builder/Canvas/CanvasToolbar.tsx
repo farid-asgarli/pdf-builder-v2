@@ -23,6 +23,7 @@ import {
   Ruler,
   ChevronDown,
   Check,
+  Magnet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,10 @@ export interface CanvasToolbarProps {
   showRulers: boolean;
   /** Toggle rulers handler */
   onToggleRulers: () => void;
+  /** Whether snap to grid is enabled */
+  snapToGrid?: boolean;
+  /** Toggle snap to grid handler */
+  onToggleSnapToGrid?: () => void;
   /** Position of toolbar */
   position?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   /** Additional CSS classes */
@@ -243,6 +248,8 @@ function CanvasToolbarComponent({
   onToggleGrid,
   showRulers,
   onToggleRulers,
+  snapToGrid = false,
+  onToggleSnapToGrid,
   position = "bottom-left",
   className,
 }: CanvasToolbarProps) {
@@ -316,6 +323,16 @@ function CanvasToolbarComponent({
           onClick={onToggleRulers}
           active={showRulers}
         />
+
+        {onToggleSnapToGrid && (
+          <ToolbarButton
+            icon={<Magnet className="h-4 w-4" />}
+            tooltip="Snap to Grid"
+            shortcut="Hold Ctrl"
+            onClick={onToggleSnapToGrid}
+            active={snapToGrid}
+          />
+        )}
       </div>
     </TooltipProvider>
   );

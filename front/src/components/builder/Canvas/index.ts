@@ -106,4 +106,77 @@ export type {
   DimensionTooltipProps,
   SizeUnit,
   ConstraintStatus,
+  ResizeModeStatus,
 } from "./ResizeHandles";
+
+// Guides components
+export {
+  AlignmentGuides,
+  DistanceIndicator,
+  SpacingIndicator,
+  useHasAlignmentGuides,
+  useAlignmentGuideCount,
+  AlignmentGuidesDefault,
+  // Snap Grid
+  SnapGrid,
+  SnapGridDefault,
+  useSnapGridSettings,
+  useIsSnapModeActive,
+  snapToGrid,
+  snapSizeToGrid,
+  snapPointToGrid,
+  DEFAULT_GRID_SIZE,
+  SMALL_GRID_SIZE,
+  DEFAULT_SNAP_POINT_RADIUS,
+  // Ruler Guides
+  RulerGuides,
+  RulerGuidesDefault,
+  RulerGuidesComponent,
+  useRulerGuides,
+  useGuidesAtPosition,
+  useGuideAlignment,
+} from "./Guides";
+export type {
+  AlignmentGuidesProps,
+  GuideLineProps,
+  DistanceIndicatorProps,
+  SpacingIndicatorProps,
+  SnapGridProps,
+  SnapPointIndicatorProps,
+  RulerGuidesProps,
+  RulerUnit,
+  GuideOrientation,
+  GuideLine,
+  DraggableGuideProps,
+} from "./Guides";
+
+// Multi-resize handles component
+export { MultiResizeHandles } from "./MultiResizeHandles";
+export type {
+  MultiResizeHandlesProps,
+  MultiResizeComponentInfo,
+} from "./MultiResizeHandles";
+
+// Resize mode indicator
+export {
+  ResizeModeIndicator,
+  ResizeModeTooltip,
+  default as ResizeModeIndicatorDefault,
+} from "./ResizeModeIndicator";
+export type {
+  ResizeModeIndicatorProps,
+  ResizeMode,
+  ResizeModeTooltipProps,
+} from "./ResizeModeIndicator";
+
+// Interactive adjusters
+export {
+  SpacingAdjuster,
+  SpacingAdjusterOverlay,
+  WithSpacingAdjusters,
+} from "./Interactions";
+export type {
+  SpacingAdjusterProps,
+  SpacingAdjusterOverlayProps,
+  WithSpacingAdjustersProps,
+} from "./Interactions";

@@ -10,7 +10,10 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { templateApi, type TemplateFilterParams } from "@/lib/api/endpoints/templates";
+import {
+  templateApi,
+  type TemplateFilterParams,
+} from "@/lib/api/endpoints/templates";
 import type {
   TemplateDto,
   TemplateSummaryDto,
@@ -87,7 +90,12 @@ export interface UseTemplateByIdOptions {
  * ```
  */
 export function useTemplates(options: UseTemplatesOptions = {}) {
-  const { filters, enabled = true, staleTime = 60 * 1000, placeholderData } = options;
+  const {
+    filters,
+    enabled = true,
+    staleTime = 60 * 1000,
+    placeholderData,
+  } = options;
 
   return useQuery({
     queryKey: templateKeys.list(filters),
@@ -97,7 +105,8 @@ export function useTemplates(options: UseTemplatesOptions = {}) {
     },
     enabled,
     staleTime,
-    placeholderData: placeholderData === "keepPrevious" ? (prev) => prev : undefined,
+    placeholderData:
+      placeholderData === "keepPrevious" ? (prev) => prev : undefined,
   });
 }
 
@@ -114,7 +123,10 @@ export function useTemplates(options: UseTemplatesOptions = {}) {
  * }
  * ```
  */
-export function useTemplateById(id: string | null | undefined, options: UseTemplateByIdOptions = {}) {
+export function useTemplateById(
+  id: string | null | undefined,
+  options: UseTemplateByIdOptions = {}
+) {
   const { enabled = true, staleTime = 60 * 1000 } = options;
 
   return useQuery({

@@ -48,6 +48,8 @@ export interface SelectOptions {
   toggle?: boolean;
   /** Perform range selection from anchor to this id */
   range?: boolean;
+  /** Ordered list of all IDs for range selection calculation */
+  orderedIds?: string[];
 }
 
 /**
@@ -293,10 +295,26 @@ export const useSelectionStore = create<SelectionState>()(
       const state = get();
       if (state.isLocked) return;
 
-      const { additive = false, toggle = false, range = false } = options;
+      const {
+        additive = false,
+        toggle = false,
+        range = false,
+        orderedIds,
+      } = options;
 
-      if (range && state.anchorId) {
-        // Range selection handled separately
+      if (range) {
+        // Range selection: select all items between anchor and target
+        if (orderedIds && orderedIds.length > 0) {
+          // Use provided ordered IDs for range calculation
+          state.selectRange(id, orderedIds);
+        } else if (state.anchorId) {
+          // No ordered IDs provided, just select the target
+          // This maintains the anchor for future range selections
+          state.select(id);
+        } else {
+          // No anchor, just select the target and set it as anchor
+          state.select(id);
+        }
         return;
       }
 
@@ -307,7 +325,8 @@ export const useSelectionStore = create<SelectionState>()(
         } else if (additive) {
           state.addToSelection(id);
         } else {
-          state.select(id);
+          // When toggling and not additive, add to selection
+          state.addToSelection(id);
         }
         return;
       }

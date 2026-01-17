@@ -21,6 +21,7 @@ import React, {
 } from "react";
 import { cn } from "@/lib/utils";
 import { useSelectionStore } from "@/store/selection-store";
+import { useCanvasStore } from "@/store/canvas-store";
 import {
   isContainerComponent,
   isWrapperComponent,
@@ -245,6 +246,10 @@ const InternalRenderer = memo(function InternalRenderer({
     (state) => state.selectWithOptions
   );
 
+  // Get all node IDs for range selection
+  const getAllNodeIds = useCanvasStore((state) => state.getAllNodeIds);
+  const allNodeIds = useMemo(() => getAllNodeIds(), [getAllNodeIds]);
+
   // Calculate selection state
   const isSelected = useMemo(() => {
     if (forceSelected !== undefined) return forceSelected;
@@ -271,8 +276,8 @@ const InternalRenderer = memo(function InternalRenderer({
       if (event.ctrlKey || event.metaKey) {
         selectWithOptions(nodeId, { toggle: true });
       } else if (event.shiftKey) {
-        // Range selection
-        selectWithOptions(nodeId, { range: true });
+        // Range selection - pass ordered IDs for range calculation
+        selectWithOptions(nodeId, { range: true, orderedIds: allNodeIds });
       } else {
         // Single selection
         select(nodeId);
@@ -280,7 +285,7 @@ const InternalRenderer = memo(function InternalRenderer({
 
       onClick?.(event, nodeId);
     },
-    [disableSelection, select, selectWithOptions, onClick]
+    [disableSelection, select, selectWithOptions, onClick, allNodeIds]
   );
 
   // Common renderer props

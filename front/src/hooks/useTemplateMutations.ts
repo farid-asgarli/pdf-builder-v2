@@ -99,7 +99,9 @@ export function useCreateTemplate(options: UseCreateTemplateOptions = {}) {
   const { invalidateMetadata } = useTemplateInvalidation();
 
   return useMutation({
-    mutationFn: async (request: SaveTemplateRequest): Promise<TemplateResponse> => {
+    mutationFn: async (
+      request: SaveTemplateRequest
+    ): Promise<TemplateResponse> => {
       return templateApi.create(request);
     },
 
@@ -165,7 +167,12 @@ export function useCreateTemplate(options: UseCreateTemplateOptions = {}) {
  * ```
  */
 export function useUpdateTemplate(options: UseUpdateTemplateOptions = {}) {
-  const { onSuccess, onError, showToast = true, optimisticUpdate = true } = options;
+  const {
+    onSuccess,
+    onError,
+    showToast = true,
+    optimisticUpdate = true,
+  } = options;
   const queryClient = useQueryClient();
   const { updateTemplateInListCache } = useTemplateCache();
 
@@ -211,7 +218,9 @@ export function useUpdateTemplate(options: UseUpdateTemplateOptions = {}) {
       updateTemplateInListCache(id, (template) => ({
         ...template,
         ...(data.name && { name: data.name }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
         ...(data.category !== undefined && { category: data.category }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
         ...(data.tags !== undefined && { tags: data.tags }),
@@ -286,7 +295,12 @@ export function useUpdateTemplate(options: UseUpdateTemplateOptions = {}) {
  * Similar to useUpdateTemplate but uses PATCH for partial updates
  */
 export function usePatchTemplate(options: UseUpdateTemplateOptions = {}) {
-  const { onSuccess, onError, showToast = true, optimisticUpdate = true } = options;
+  const {
+    onSuccess,
+    onError,
+    showToast = true,
+    optimisticUpdate = true,
+  } = options;
   const queryClient = useQueryClient();
   const { updateTemplateInListCache } = useTemplateCache();
 
@@ -322,11 +336,18 @@ export function usePatchTemplate(options: UseUpdateTemplateOptions = {}) {
       }
 
       // Update list caches for visible fields only
-      if (data.name || data.description !== undefined || data.category !== undefined || data.isActive !== undefined) {
+      if (
+        data.name ||
+        data.description !== undefined ||
+        data.category !== undefined ||
+        data.isActive !== undefined
+      ) {
         updateTemplateInListCache(id, (template) => ({
           ...template,
           ...(data.name && { name: data.name }),
-          ...(data.description !== undefined && { description: data.description }),
+          ...(data.description !== undefined && {
+            description: data.description,
+          }),
           ...(data.category !== undefined && { category: data.category }),
           ...(data.isActive !== undefined && { isActive: data.isActive }),
           updatedAt: new Date().toISOString(),
@@ -394,7 +415,12 @@ export function usePatchTemplate(options: UseUpdateTemplateOptions = {}) {
  * ```
  */
 export function useDeleteTemplate(options: UseDeleteTemplateOptions = {}) {
-  const { onSuccess, onError, showToast = true, optimisticUpdate = true } = options;
+  const {
+    onSuccess,
+    onError,
+    showToast = true,
+    optimisticUpdate = true,
+  } = options;
   const queryClient = useQueryClient();
   const { removeTemplateFromListCache } = useTemplateCache();
 
@@ -491,7 +517,9 @@ export function useDeleteTemplate(options: UseDeleteTemplateOptions = {}) {
  * });
  * ```
  */
-export function useDuplicateTemplate(options: UseDuplicateTemplateOptions = {}) {
+export function useDuplicateTemplate(
+  options: UseDuplicateTemplateOptions = {}
+) {
   const { onSuccess, onError, showToast = true } = options;
   const queryClient = useQueryClient();
 
@@ -527,7 +555,9 @@ export function useDuplicateTemplate(options: UseDuplicateTemplateOptions = {}) 
 
         onSuccess?.(response.template);
       } else {
-        throw new Error(response.errorMessage || "Failed to duplicate template");
+        throw new Error(
+          response.errorMessage || "Failed to duplicate template"
+        );
       }
     },
 
@@ -569,7 +599,9 @@ export function useImportTemplate(options: UseCreateTemplateOptions = {}) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (templateJson: TemplateDto): Promise<TemplateResponse> => {
+    mutationFn: async (
+      templateJson: TemplateDto
+    ): Promise<TemplateResponse> => {
       return templateApi.import(templateJson);
     },
 
@@ -665,12 +697,14 @@ export function useExportTemplate() {
  * } = useTemplateMutations();
  * ```
  */
-export function useTemplateMutations(options: {
-  onCreate?: UseCreateTemplateOptions;
-  onUpdate?: UseUpdateTemplateOptions;
-  onDelete?: UseDeleteTemplateOptions;
-  onDuplicate?: UseDuplicateTemplateOptions;
-} = {}) {
+export function useTemplateMutations(
+  options: {
+    onCreate?: UseCreateTemplateOptions;
+    onUpdate?: UseUpdateTemplateOptions;
+    onDelete?: UseDeleteTemplateOptions;
+    onDuplicate?: UseDuplicateTemplateOptions;
+  } = {}
+) {
   const createMutation = useCreateTemplate(options.onCreate);
   const updateMutation = useUpdateTemplate(options.onUpdate);
   const patchMutation = usePatchTemplate(options.onUpdate);

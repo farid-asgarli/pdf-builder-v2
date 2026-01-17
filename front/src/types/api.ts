@@ -6,7 +6,7 @@
  * Keep this file in sync with backend changes.
  */
 
-import type { LayoutNodeDto, StylePropertiesDto, PageSettingsDto } from "./dto";
+import type { LayoutNodeDto, PageSettingsDto } from "./dto";
 
 // ============================================================================
 // GENERIC API RESPONSE WRAPPER

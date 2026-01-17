@@ -53,3 +53,29 @@ export type {
 } from "./PropertiesPanel";
 // Note: SizeUnit is intentionally not re-exported here to avoid conflict with Canvas/ResizeHandles
 // Import SizeUnit directly from "./PropertiesPanel" or "./Canvas" as needed
+
+// ValidationErrorsPanel
+export * from "./ValidationErrorsPanel";
+
+// Preview Panel
+export {
+  PreviewPanel,
+  PreviewToggleButton,
+  PdfViewer,
+  PreviewToolbar,
+} from "./Preview";
+export type {
+  PreviewPanelProps,
+  PdfViewerProps,
+  PreviewToolbarProps,
+} from "./Preview";
+
+// Keyboard Shortcuts
+export {
+  KeyboardShortcutsProvider,
+  useKeyboardShortcutsContext,
+  useHasKeyboardShortcutsContext,
+  KeyboardShortcutsHelp,
+  KeyboardShortcutsActions,
+  KeyboardShortcutsDialog,
+} from "./KeyboardShortcuts";

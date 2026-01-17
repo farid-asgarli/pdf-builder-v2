@@ -619,6 +619,11 @@ function ResizeHandlesComponent({
           visible={true}
           zoom={zoom}
           constraintStatus={constraintStatusForTooltip}
+          resizeModes={{
+            aspectLocked: resizeState.lockAspectRatio,
+            snapping: resizeState.snapToIncrement,
+            previewMode: resizeState.ignoreConstraints,
+          }}
           showWidthOnly={showWidthOnly}
           showHeightOnly={showHeightOnly}
         />

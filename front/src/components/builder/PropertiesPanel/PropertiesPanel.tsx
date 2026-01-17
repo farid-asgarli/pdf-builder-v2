@@ -50,7 +50,6 @@ import {
   RotateCcw,
   GitBranch,
   Settings,
-  Copy,
   Hash,
 } from "lucide-react";
 
@@ -354,7 +353,7 @@ interface SectionPlaceholderProps {
 
 function TransformSectionPlaceholder({
   properties,
-  metadata,
+  metadata: _metadata,
 }: SectionPlaceholderProps) {
   if (properties.length === 0) {
     return (
@@ -380,7 +379,7 @@ function TransformSectionPlaceholder({
 
 function FlowSectionPlaceholder({
   properties,
-  metadata,
+  metadata: _metadata,
 }: SectionPlaceholderProps) {
   if (properties.length === 0) {
     return (

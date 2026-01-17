@@ -37,7 +37,4 @@ export {
   EXPRESSION_KEYWORDS,
 } from "./ExpressionAutocomplete";
 
-export type {
-  AutocompleteConfig,
-  BuiltinFunction,
-} from "./ExpressionAutocomplete";
+export type { AutocompleteConfig } from "./ExpressionAutocomplete";

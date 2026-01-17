@@ -81,6 +81,7 @@ interface CanvasState {
     index: number
   ) => MutationResult;
   duplicateComponent: (id: string) => MutationResult;
+  reorderComponent: (id: string, newIndex: number) => MutationResult;
 
   // Tree Traversal Utilities
   getComponent: (id: string) => LayoutNode | null;
@@ -792,6 +793,66 @@ export const useCanvasStore = create<CanvasState>()(
 
         // Add the cloned node after the original
         return get().addComponent(parent.id, clonedNode, insertIndex);
+      },
+
+      reorderComponent: (id, newIndex) => {
+        const state = get();
+
+        if (!state.root) {
+          return { success: false, error: "No root node exists" };
+        }
+
+        // Can't reorder root
+        if (state.root.id === id) {
+          return { success: false, error: "Cannot reorder root component" };
+        }
+
+        const node = findNode(state.root, id);
+        if (!node) {
+          return { success: false, error: `Component not found: ${id}` };
+        }
+
+        const parent = findParent(state.root, id);
+        if (!parent) {
+          return { success: false, error: "Parent not found" };
+        }
+
+        // Can only reorder within container components with children array
+        if (!parent.children || !isContainerComponent(parent.type)) {
+          return {
+            success: false,
+            error: "Can only reorder children of container components",
+          };
+        }
+
+        const currentIndex = parent.children.findIndex((c) => c.id === id);
+        if (currentIndex === -1) {
+          return { success: false, error: "Component not found in parent" };
+        }
+
+        // Validate new index
+        if (newIndex < 0 || newIndex >= parent.children.length) {
+          return { success: false, error: "Invalid index" };
+        }
+
+        // No change needed if same index
+        if (currentIndex === newIndex) {
+          return { success: true, nodeId: id };
+        }
+
+        set((state) => {
+          const parent = findParent(state.root!, id);
+          if (parent && parent.children) {
+            // Remove from current position
+            const [removed] = parent.children.splice(currentIndex, 1);
+            // Insert at new position
+            parent.children.splice(newIndex, 0, removed);
+            state.isDirty = true;
+            state.lastModified = Date.now();
+          }
+        });
+
+        return { success: true, nodeId: id };
       },
 
       // ========================================================================

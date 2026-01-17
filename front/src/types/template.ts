@@ -5,7 +5,7 @@
  * For API-level types, see api.ts (TemplateDto, TemplateSummaryDto, etc.)
  */
 
-import type { LayoutNode } from "./component";
+import type { LayoutNode, StyleProperties } from "./component";
 import type { LayoutNodeDto, PageSettingsDto } from "./dto";
 
 /**
@@ -65,8 +65,9 @@ export interface CreateTemplateRequest {
 
 /**
  * Update template request (frontend model)
+ * Note: For API requests, use UpdateTemplateRequest from api.ts
  */
-export interface UpdateTemplateRequest {
+export interface FrontendUpdateTemplateRequest {
   name?: string;
   description?: string;
   status?: TemplateStatus;
@@ -115,7 +116,7 @@ export function fromLayoutNodeDto(dto: LayoutNodeDto): LayoutNode {
     id: dto.id || generateNodeId(),
     type: dto.type as LayoutNode["type"],
     properties: dto.properties || {},
-    style: dto.style,
+    style: dto.style as unknown as StyleProperties | undefined,
     visible: dto.visible,
     repeatFor: dto.repeatFor,
     repeatAs: dto.repeatAs,

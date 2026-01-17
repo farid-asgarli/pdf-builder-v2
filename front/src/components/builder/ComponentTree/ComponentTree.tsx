@@ -10,6 +10,7 @@
  * - Drag to reorder in tree
  * - Right-click context menu (delete, duplicate, copy/paste)
  * - Keyboard navigation
+ * - Validation error highlighting
  */
 
 "use client";
@@ -37,18 +38,33 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Layers, ChevronDown, ChevronRight, FolderTree } from "lucide-react";
+import {
+  Layers,
+  ChevronDown,
+  ChevronRight,
+  FolderTree,
+  AlertCircle,
+  AlertTriangle,
+} from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "@/store/canvas-store";
 import { useSelectionStore } from "@/store/selection-store";
 import { useHistoryStore } from "@/store/history-store";
+import { useValidationSummary } from "@/hooks/useValidation";
 import type { LayoutNode, ComponentType } from "@/types/component";
 import { TreeNode } from "./TreeNode";
 import { COMPONENT_ICONS } from "@/lib/constants/icons";
@@ -121,8 +137,10 @@ export function ComponentTree({
     (state) => state.duplicateComponent
   );
   const moveComponent = useCanvasStore((state) => state.moveComponent);
+  const reorderComponent = useCanvasStore((state) => state.reorderComponent);
   const addComponent = useCanvasStore((state) => state.addComponent);
   const getComponent = useCanvasStore((state) => state.getComponent);
+  const getParent = useCanvasStore((state) => state.getParent);
 
   // Selection store
   const selectedIds = useSelectionStore((state) => state.selectedIds);
@@ -133,6 +151,9 @@ export function ComponentTree({
 
   // History store
   const pushState = useHistoryStore((state) => state.pushState);
+
+  // Validation summary
+  const validationSummary = useValidationSummary();
 
   // Local state - initialize expandedIds with root if available
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
@@ -186,14 +207,14 @@ export function ComponentTree({
         // Toggle selection with Ctrl/Cmd
         selectWithOptions(id, { toggle: true });
       } else if (event.shiftKey) {
-        // Range selection with Shift
-        selectWithOptions(id, { range: true });
+        // Range selection with Shift - pass ordered IDs for range calculation
+        selectWithOptions(id, { range: true, orderedIds: sortableIds });
       } else {
         // Single selection
         select(id);
       }
     },
-    [select, selectWithOptions]
+    [select, selectWithOptions, sortableIds]
   );
 
   // Handle expand/collapse toggle
@@ -317,6 +338,76 @@ export function ComponentTree({
       }
     },
     [clipboard, root, pushState, addComponent, deleteComponent, select]
+  );
+
+  // Handle move up action (reorder within parent)
+  const handleMoveUp = useCallback(
+    (id: string) => {
+      if (!root) return;
+
+      const parent = getParent(id);
+      if (!parent?.children) return;
+
+      const currentIndex = parent.children.findIndex((c) => c.id === id);
+      if (currentIndex <= 0) return;
+
+      pushState(root, { action: "Move component up" });
+      reorderComponent(id, currentIndex - 1);
+    },
+    [root, getParent, pushState, reorderComponent]
+  );
+
+  // Handle move down action (reorder within parent)
+  const handleMoveDown = useCallback(
+    (id: string) => {
+      if (!root) return;
+
+      const parent = getParent(id);
+      if (!parent?.children) return;
+
+      const currentIndex = parent.children.findIndex((c) => c.id === id);
+      if (currentIndex < 0 || currentIndex >= parent.children.length - 1)
+        return;
+
+      pushState(root, { action: "Move component down" });
+      reorderComponent(id, currentIndex + 1);
+    },
+    [root, getParent, pushState, reorderComponent]
+  );
+
+  // Handle move to first position
+  const handleMoveFirst = useCallback(
+    (id: string) => {
+      if (!root) return;
+
+      const parent = getParent(id);
+      if (!parent?.children) return;
+
+      const currentIndex = parent.children.findIndex((c) => c.id === id);
+      if (currentIndex <= 0) return;
+
+      pushState(root, { action: "Move component to top" });
+      reorderComponent(id, 0);
+    },
+    [root, getParent, pushState, reorderComponent]
+  );
+
+  // Handle move to last position
+  const handleMoveLast = useCallback(
+    (id: string) => {
+      if (!root) return;
+
+      const parent = getParent(id);
+      if (!parent?.children) return;
+
+      const currentIndex = parent.children.findIndex((c) => c.id === id);
+      if (currentIndex < 0 || currentIndex >= parent.children.length - 1)
+        return;
+
+      pushState(root, { action: "Move component to bottom" });
+      reorderComponent(id, parent.children.length - 1);
+    },
+    [root, getParent, pushState, reorderComponent]
   );
 
   // Handle drag start
@@ -481,6 +572,57 @@ export function ComponentTree({
         <div className="flex items-center gap-2">
           <FolderTree className="h-4 w-4" />
           <span className="text-sm font-medium">Components</span>
+          {/* Validation summary badges */}
+          {validationSummary.hasIssues && (
+            <div className="flex items-center gap-1">
+              {validationSummary.errorCount > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="destructive"
+                        className="flex h-4 items-center gap-1 px-1 py-0 text-[10px]"
+                      >
+                        <AlertCircle className="h-2.5 w-2.5" />
+                        {validationSummary.errorCount}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">
+                        {validationSummary.errorCount} validation{" "}
+                        {validationSummary.errorCount === 1
+                          ? "error"
+                          : "errors"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {validationSummary.warningCount > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className="flex h-4 items-center gap-1 border-yellow-300 bg-yellow-50 px-1 py-0 text-[10px] text-yellow-700 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-400"
+                      >
+                        <AlertTriangle className="h-2.5 w-2.5" />
+                        {validationSummary.warningCount}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">
+                        {validationSummary.warningCount} validation{" "}
+                        {validationSummary.warningCount === 1
+                          ? "warning"
+                          : "warnings"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -552,9 +694,17 @@ export function ComponentTree({
                       onDuplicate={handleDuplicate}
                       onCopy={handleCopy}
                       onPaste={handlePaste}
+                      onCut={handleCut}
+                      onMoveUp={handleMoveUp}
+                      onMoveDown={handleMoveDown}
+                      onMoveFirst={handleMoveFirst}
+                      onMoveLast={handleMoveLast}
                       canPaste={canPaste}
+                      canMoveUp={false}
+                      canMoveDown={false}
                       parentId={null}
                       index={0}
+                      siblingsCount={1}
                     />
                   </div>
                 </SortableContext>

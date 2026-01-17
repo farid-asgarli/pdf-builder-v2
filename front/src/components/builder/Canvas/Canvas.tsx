@@ -15,11 +15,14 @@
 import { useCallback, useRef, useEffect, useState, memo } from "react";
 import { cn } from "@/lib/utils";
 import { useCanvasViewStore } from "@/store/canvas-view-store";
+import { useInteractionStore } from "@/store/interaction-store";
 import { useCanvasZoom } from "@/hooks/useCanvasZoom";
 import { useCanvasPan } from "@/hooks/useCanvasPan";
 import { CanvasGrid, type GridPattern } from "./CanvasGrid";
 import { CanvasRulers } from "./CanvasRuler";
 import { CanvasToolbar } from "./CanvasToolbar";
+import { SnapGrid } from "./Guides";
+import { ResizeModeIndicator } from "./ResizeModeIndicator";
 import type { Point, Size } from "@/types/canvas";
 
 // ============================================================================
@@ -89,9 +92,38 @@ function CanvasComponent({
   const showGrid = useCanvasViewStore((state) => state.config.showGrid);
   const showRulers = useCanvasViewStore((state) => state.config.showRulers);
   const gridSize = useCanvasViewStore((state) => state.config.gridSize);
+  const snapToGrid = useCanvasViewStore((state) => state.config.snapToGrid);
   const toggleGrid = useCanvasViewStore((state) => state.toggleGrid);
   const toggleRulers = useCanvasViewStore((state) => state.toggleRulers);
+  const toggleSnapToGrid = useCanvasViewStore(
+    (state) => state.toggleSnapToGrid
+  );
   const resetView = useCanvasViewStore((state) => state.resetView);
+
+  // Interaction store state for resize mode indicator
+  const activeInteraction = useInteractionStore(
+    (state) => state.activeInteraction
+  );
+  const resizeState = useInteractionStore((state) => state.resize);
+  const multiResizeState = useInteractionStore((state) => state.multiResize);
+
+  // Determine if resizing and current modes
+  const isResizing =
+    activeInteraction === "resize" || activeInteraction === "multi-resize";
+  const resizeModes = {
+    aspectRatioLocked:
+      resizeState?.lockAspectRatio ??
+      multiResizeState?.lockAspectRatio ??
+      false,
+    snapToGrid:
+      resizeState?.snapToIncrement ??
+      multiResizeState?.snapToIncrement ??
+      false,
+    previewMode:
+      resizeState?.ignoreConstraints ??
+      multiResizeState?.ignoreConstraints ??
+      false,
+  };
 
   // Zoom hook
   const {
@@ -261,6 +293,15 @@ function CanvasComponent({
           visible={showGrid}
         />
 
+        {/* Snap grid overlay (visible during resize/transform operations) */}
+        <SnapGrid
+          gridSize={gridSize}
+          zoom={zoom}
+          snapEnabled={snapToGrid}
+          viewportSize={viewportSize}
+          canvasOffset={pan}
+        />
+
         {/* Transformed canvas content */}
         <div
           ref={canvasRef}
@@ -288,9 +329,18 @@ function CanvasComponent({
           onToggleGrid={toggleGrid}
           showRulers={showRulers}
           onToggleRulers={toggleRulers}
+          snapToGrid={snapToGrid}
+          onToggleSnapToGrid={toggleSnapToGrid}
           position={toolbarPosition}
         />
       )}
+
+      {/* Resize mode indicator - shows during resize operations */}
+      <ResizeModeIndicator
+        isResizing={isResizing}
+        modes={resizeModes}
+        position="top-center"
+      />
 
       {/* Pan indicator (when space is held) */}
       {panWithSpaceKey && isSpaceHeld && !isPanning && (

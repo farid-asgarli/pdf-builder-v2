@@ -117,3 +117,34 @@ export {
   type PaddingAdjustState,
   type SpacingAdjustState,
 } from "./interaction-store";
+
+// Validation Store
+export {
+  useValidationStore,
+  useValidationStatus,
+  useIsValidating,
+  useIsLayoutValid,
+  useValidationErrors,
+  useValidationWarnings,
+  useValidationCounts,
+  useNodeHasError,
+  useNodeHasWarning,
+  useNodeSeverity,
+  useValidationStatistics,
+  useValidationTime,
+  useValidationRequestError,
+  useNodesWithErrors,
+  useNodesWithWarnings,
+  type ValidationStatus,
+  type NodeValidationInfo,
+} from "./validation-store";
+
+// Clipboard Store
+export {
+  useClipboardStore,
+  useHasClipboardContent,
+  useClipboardOperation,
+  useClipboardNodeCount,
+  type ClipboardOperation,
+  type ClipboardEntry,
+} from "./clipboard-store";

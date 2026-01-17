@@ -154,6 +154,29 @@ export function findParentNode(
 }
 
 /**
+ * Get siblings of a node (other children of the same parent)
+ * @param root Root node of the tree
+ * @param nodeId ID of the node to find siblings for
+ * @returns Array of sibling nodes (excluding the node itself)
+ */
+export function getSiblings(root: LayoutNode, nodeId: string): LayoutNode[] {
+  const parentResult = findParentNode(root, nodeId);
+  if (!parentResult) {
+    return [];
+  }
+
+  const parent = parentResult.node;
+
+  // Container components have multiple children
+  if (parent.children) {
+    return parent.children.filter((child) => child.id !== nodeId);
+  }
+
+  // Wrapper components only have a single child, no siblings
+  return [];
+}
+
+/**
  * Get all ancestor IDs from root to the node
  */
 export function getAncestorIds(root: LayoutNode, nodeId: string): string[] {

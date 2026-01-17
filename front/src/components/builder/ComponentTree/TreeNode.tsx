@@ -2,6 +2,7 @@
  * TreeNode
  * Recursive tree node component for the component tree
  * Displays a component with expand/collapse, selection, and drag support
+ * Includes validation error/warning highlighting
  */
 
 "use client";
@@ -9,7 +10,13 @@
 import React, { useMemo, useCallback } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronRight, ChevronDown, GripVertical } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronDown,
+  GripVertical,
+  AlertCircle,
+  AlertTriangle,
+} from "lucide-react";
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -20,12 +27,19 @@ import {
   ContextMenuTrigger,
   ContextMenuContent,
 } from "@/components/ui/context-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { LayoutNode, ComponentType } from "@/types/component";
 import { isContainerComponent, isWrapperComponent } from "@/types/component";
 import { COMPONENT_ICONS } from "@/lib/constants/icons";
 import { getCategoryMetadata } from "@/lib/constants/categories";
 import { COMPONENT_REGISTRY } from "@/lib/constants/components";
+import { useNodeValidation } from "@/hooks/useValidation";
 import { TreeActions } from "./TreeActions";
 
 export interface TreeNodeProps {
@@ -49,12 +63,28 @@ export interface TreeNodeProps {
   onCopy: (id: string) => void;
   /** Callback for paste action */
   onPaste: (id: string) => void;
+  /** Callback for cut action */
+  onCut: (id: string) => void;
+  /** Callback for move up action */
+  onMoveUp?: (id: string) => void;
+  /** Callback for move down action */
+  onMoveDown?: (id: string) => void;
+  /** Callback for move to first action */
+  onMoveFirst?: (id: string) => void;
+  /** Callback for move to last action */
+  onMoveLast?: (id: string) => void;
   /** Whether paste is available (something in clipboard) */
   canPaste: boolean;
+  /** Whether this node can move up */
+  canMoveUp?: boolean;
+  /** Whether this node can move down */
+  canMoveDown?: boolean;
   /** Parent node ID (null for root) */
   parentId: string | null;
   /** Index in parent's children array */
   index: number;
+  /** Total siblings count */
+  siblingsCount?: number;
 }
 
 /**
@@ -122,9 +152,17 @@ export function TreeNode({
   onDuplicate,
   onCopy,
   onPaste,
+  onCut,
+  onMoveUp,
+  onMoveDown,
+  onMoveFirst,
+  onMoveLast,
   canPaste,
+  canMoveUp = false,
+  canMoveDown = false,
   parentId,
   index,
+  siblingsCount = 1,
 }: TreeNodeProps) {
   // Get component metadata
   const componentMetadata = useMemo(
@@ -146,6 +184,17 @@ export function TreeNode({
 
   // Get children
   const children = useMemo(() => getChildren(node), [node]);
+
+  // Calculate move availability for this node
+  const nodeCanMoveUp = canMoveUp || index > 0;
+  const nodeCanMoveDown = canMoveDown || index < siblingsCount - 1;
+
+  // Get validation state for this node
+  const {
+    hasError,
+    hasWarning,
+    severity: _severity,
+  } = useNodeValidation(node.id);
 
   // Sortable setup for drag and drop reordering
   const {
@@ -228,6 +277,43 @@ export function TreeNode({
   const isWrapper = isWrapperComponent(node.type as ComponentType);
   const acceptsChildren = isContainer || isWrapper;
 
+  // Validation indicator component
+  const ValidationIndicator = useMemo(() => {
+    if (hasError) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="shrink-0">
+                <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p className="text-xs">This component has validation errors</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    if (hasWarning) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="shrink-0">
+                <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p className="text-xs">This component has validation warnings</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    return null;
+  }, [hasError, hasWarning]);
+
   return (
     <Collapsible open={isExpanded} onOpenChange={() => onToggleExpand(node.id)}>
       <ContextMenu>
@@ -240,7 +326,13 @@ export function TreeNode({
               "transition-colors duration-100",
               "hover:bg-accent/50",
               isSelected && "bg-accent text-accent-foreground",
-              isDragging && "z-50 shadow-lg"
+              isDragging && "z-50 shadow-lg",
+              // Validation highlighting
+              hasError && !isSelected && "bg-red-50 dark:bg-red-950/30",
+              hasWarning &&
+                !hasError &&
+                !isSelected &&
+                "bg-yellow-50 dark:bg-yellow-950/30"
             )}
             onClick={handleClick}
             onKeyDown={handleKeyDown}
@@ -295,13 +387,34 @@ export function TreeNode({
 
             {/* Component icon */}
             <IconComponent
-              className="h-4 w-4 shrink-0"
-              style={{ color: categoryMeta.color }}
+              className={cn(
+                "h-4 w-4 shrink-0",
+                hasError && "text-red-500",
+                hasWarning && !hasError && "text-yellow-500"
+              )}
+              style={
+                !hasError && !hasWarning
+                  ? { color: categoryMeta.color }
+                  : undefined
+              }
               aria-hidden="true"
             />
 
             {/* Component name */}
-            <span className="truncate text-xs font-medium">{displayName}</span>
+            <span
+              className={cn(
+                "truncate text-xs font-medium",
+                hasError && "text-red-600 dark:text-red-400",
+                hasWarning &&
+                  !hasError &&
+                  "text-yellow-600 dark:text-yellow-400"
+              )}
+            >
+              {displayName}
+            </span>
+
+            {/* Validation indicator */}
+            {ValidationIndicator}
 
             {/* Type indicator for containers/wrappers */}
             {acceptsChildren && (
@@ -322,10 +435,17 @@ export function TreeNode({
             canDelete={depth > 0} // Don't allow deleting root
             canDuplicate={depth > 0} // Don't allow duplicating root
             canPaste={canPaste && acceptsChildren}
+            canMoveUp={depth > 0 && nodeCanMoveUp}
+            canMoveDown={depth > 0 && nodeCanMoveDown}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onCopy={onCopy}
             onPaste={onPaste}
+            onCut={onCut}
+            onMoveUp={onMoveUp}
+            onMoveDown={onMoveDown}
+            onMoveFirst={onMoveFirst}
+            onMoveLast={onMoveLast}
           />
         </ContextMenuContent>
       </ContextMenu>
@@ -347,9 +467,17 @@ export function TreeNode({
                 onDuplicate={onDuplicate}
                 onCopy={onCopy}
                 onPaste={onPaste}
+                onCut={onCut}
+                onMoveUp={onMoveUp}
+                onMoveDown={onMoveDown}
+                onMoveFirst={onMoveFirst}
+                onMoveLast={onMoveLast}
                 canPaste={canPaste}
+                canMoveUp={childIndex > 0}
+                canMoveDown={childIndex < children.length - 1}
                 parentId={node.id}
                 index={childIndex}
+                siblingsCount={children.length}
               />
             ))}
           </div>

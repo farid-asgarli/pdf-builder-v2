@@ -82,6 +82,8 @@ export interface ResizeState {
   snapToIncrement: boolean;
   /** Snap increment in pixels (default 10) */
   snapIncrement: number;
+  /** Whether Alt is held to ignore constraints (preview mode) */
+  ignoreConstraints: boolean;
 }
 
 /**
@@ -166,11 +168,70 @@ export interface InteractionVisualSettings {
  */
 export type InteractionType =
   | "resize"
+  | "multi-resize"
   | "rotation"
   | "translation"
   | "padding"
   | "spacing"
+  | "column-resize"
   | null;
+
+/**
+ * Component resize info for multi-component proportional resize
+ */
+export interface MultiResizeComponentInfo {
+  /** Component ID */
+  componentId: string;
+  /** Original size before resize */
+  originalSize: Size;
+  /** Original position relative to the multi-selection bounding box */
+  originalRelativePosition: Point;
+  /** Current size during resize */
+  currentSize: Size;
+  /** Current position during resize */
+  currentPosition: Point;
+}
+
+/**
+ * Multi-component proportional resize state
+ */
+export interface MultiResizeState {
+  /** All components being resized */
+  components: MultiResizeComponentInfo[];
+  /** Which handle is being dragged */
+  handle: ResizeHandle;
+  /** Starting mouse/touch position */
+  startPosition: Point;
+  /** Original bounding box of all selected components */
+  originalBoundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  /** Current bounding box during resize */
+  currentBoundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  /** Scale factors for proportional resize */
+  scaleFactor: {
+    x: number;
+    y: number;
+  };
+  /** Whether Shift is held for aspect ratio lock */
+  lockAspectRatio: boolean;
+  /** Whether Ctrl/Cmd is held for snap mode */
+  snapToIncrement: boolean;
+  /** Snap increment in pixels (default 10) */
+  snapIncrement: number;
+  /** Global constraints */
+  constraints: ResizeConstraints;
+  /** Whether Alt is held to ignore constraints (preview mode) */
+  ignoreConstraints: boolean;
+}
 
 /**
  * Padding adjustment state
@@ -214,6 +275,32 @@ export interface SpacingAdjustState {
   originalSpacing: number;
   /** Current spacing during adjustment */
   currentSpacing: number;
+  /** Direction of adjustment (Column = vertical, Row = horizontal) */
+  direction: "vertical" | "horizontal";
+}
+
+/**
+ * Table column resize state
+ */
+export interface TableColumnResizeState {
+  /** Table component ID */
+  componentId: string;
+  /** Index of the column divider being dragged (0 = between col 0 and 1) */
+  columnIndex: number;
+  /** Starting mouse X position */
+  startPosition: Point;
+  /** Original column widths (all columns) */
+  originalColumns: Array<{ type: "relative" | "constant"; value: number }>;
+  /** Current column widths during resize */
+  currentColumns: Array<{ type: "relative" | "constant"; value: number }>;
+  /** Total available width for relative calculations */
+  totalWidth: number;
+  /** Minimum column width in points (default: 20) */
+  minColumnWidth: number;
+  /** Whether to snap to grid increments */
+  snapToGrid: boolean;
+  /** Snap increment in points (default: 5) */
+  snapIncrement: number;
 }
 
 // ============================================================================
@@ -246,6 +333,12 @@ interface InteractionState {
   /** Spacing adjustment state (null when not adjusting) */
   spacingAdjust: SpacingAdjustState | null;
 
+  /** Table column resize state (null when not resizing columns) */
+  columnResize: TableColumnResizeState | null;
+
+  /** Multi-component proportional resize state (null when not resizing multiple) */
+  multiResize: MultiResizeState | null;
+
   /** Active alignment guides */
   alignmentGuides: AlignmentGuide[];
 
@@ -277,11 +370,11 @@ interface InteractionState {
   /**
    * Update resize during drag
    * @param currentPosition - Current mouse/touch position
-   * @param modifiers - Keyboard modifiers (shift, ctrl/cmd)
+   * @param modifiers - Keyboard modifiers (shift, ctrl/cmd, alt)
    */
   updateResize: (
     currentPosition: Point,
-    modifiers?: { shift?: boolean; ctrl?: boolean }
+    modifiers?: { shift?: boolean; ctrl?: boolean; alt?: boolean }
   ) => void;
 
   /**
@@ -294,6 +387,51 @@ interface InteractionState {
    * Cancel resize and restore original size
    */
   cancelResize: () => void;
+
+  // ========================================
+  // Multi-Resize Actions (Proportional)
+  // ========================================
+
+  /**
+   * Start a multi-component proportional resize interaction
+   * @param components - Array of component info with IDs, sizes, and positions
+   * @param handle - Which resize handle is being dragged
+   * @param startPosition - Initial mouse/touch position
+   * @param boundingBox - Combined bounding box of all selected components
+   * @param constraints - Global resize constraints
+   */
+  startMultiResize: (
+    components: Array<{
+      componentId: string;
+      size: Size;
+      position: Point;
+    }>,
+    handle: ResizeHandle,
+    startPosition: Point,
+    boundingBox: { x: number; y: number; width: number; height: number },
+    constraints?: ResizeConstraints
+  ) => void;
+
+  /**
+   * Update multi-resize during drag
+   * @param currentPosition - Current mouse/touch position
+   * @param modifiers - Keyboard modifiers (shift, ctrl/cmd, alt)
+   */
+  updateMultiResize: (
+    currentPosition: Point,
+    modifiers?: { shift?: boolean; ctrl?: boolean; alt?: boolean }
+  ) => void;
+
+  /**
+   * End multi-resize interaction
+   * @returns Final component sizes and positions or null if cancelled
+   */
+  endMultiResize: () => MultiResizeComponentInfo[] | null;
+
+  /**
+   * Cancel multi-resize and restore original sizes
+   */
+  cancelMultiResize: () => void;
 
   // ========================================
   // Rotation Actions
@@ -403,12 +541,18 @@ interface InteractionState {
 
   /**
    * Start spacing adjustment
+   * @param componentId - Container component ID
+   * @param gapIndex - Index of the gap between children
+   * @param startPosition - Initial mouse position
+   * @param originalSpacing - Original spacing value in points
+   * @param direction - Direction of container (Column = vertical, Row = horizontal)
    */
   startSpacingAdjust: (
     componentId: string,
     gapIndex: number,
     startPosition: Point,
-    originalSpacing: number
+    originalSpacing: number,
+    direction: "vertical" | "horizontal"
   ) => void;
 
   /**
@@ -425,6 +569,64 @@ interface InteractionState {
    * Cancel spacing adjustment
    */
   cancelSpacingAdjust: () => void;
+
+  // ========================================
+  // Table Column Resize Actions
+  // ========================================
+
+  /**
+   * Start table column resize
+   * @param componentId - Table component ID
+   * @param columnIndex - Index of the column divider (0 = between col 0 and 1)
+   * @param startPosition - Initial mouse position
+   * @param originalColumns - Original column definitions
+   * @param totalWidth - Total table width for relative calculations
+   * @param minColumnWidth - Minimum column width (default: 20)
+   */
+  startColumnResize: (
+    componentId: string,
+    columnIndex: number,
+    startPosition: Point,
+    originalColumns: Array<{ type: "relative" | "constant"; value: number }>,
+    totalWidth: number,
+    minColumnWidth?: number
+  ) => void;
+
+  /**
+   * Update column resize during drag
+   * @param currentPosition - Current mouse position
+   * @param modifiers - Keyboard modifiers (ctrl for snap)
+   */
+  updateColumnResize: (
+    currentPosition: Point,
+    modifiers?: { ctrl?: boolean }
+  ) => void;
+
+  /**
+   * End column resize
+   * @returns Final column definitions or null if cancelled
+   */
+  endColumnResize: () => Array<{
+    type: "relative" | "constant";
+    value: number;
+  }> | null;
+
+  /**
+   * Cancel column resize
+   */
+  cancelColumnResize: () => void;
+
+  /**
+   * Auto-size column to fit content (called on double-click)
+   * @param componentId - Table component ID
+   * @param columnIndex - Column index to auto-size
+   * @param contentWidth - Calculated content width
+   */
+  autoSizeColumn: (
+    componentId: string,
+    columnIndex: number,
+    contentWidth: number
+  ) => void;
 
   // ========================================
   // Alignment Guide Actions
@@ -540,7 +742,8 @@ function calculateResizeSize(
   constraints: ResizeConstraints,
   lockAspectRatio: boolean,
   snapToIncrement: boolean,
-  snapIncrement: number
+  snapIncrement: number,
+  ignoreConstraints: boolean = false
 ): Size {
   const deltaX = currentPosition.x - startPosition.x;
   const deltaY = currentPosition.y - startPosition.y;
@@ -606,15 +809,21 @@ function calculateResizeSize(
     }
   }
 
-  // Apply constraints
-  newWidth = Math.max(
-    constraints.minWidth ?? 0,
-    Math.min(constraints.maxWidth ?? Infinity, newWidth)
-  );
-  newHeight = Math.max(
-    constraints.minHeight ?? 0,
-    Math.min(constraints.maxHeight ?? Infinity, newHeight)
-  );
+  // Apply constraints (unless ignoring for preview mode)
+  if (!ignoreConstraints) {
+    newWidth = Math.max(
+      constraints.minWidth ?? 0,
+      Math.min(constraints.maxWidth ?? Infinity, newWidth)
+    );
+    newHeight = Math.max(
+      constraints.minHeight ?? 0,
+      Math.min(constraints.maxHeight ?? Infinity, newHeight)
+    );
+  } else {
+    // Even in preview mode, enforce minimum reasonable size (prevent negative/zero)
+    newWidth = Math.max(1, newWidth);
+    newHeight = Math.max(1, newHeight);
+  }
 
   return { width: newWidth, height: newHeight };
 }
@@ -755,6 +964,8 @@ export const useInteractionStore = create<InteractionState>()(
     translation: null,
     paddingAdjust: null,
     spacingAdjust: null,
+    columnResize: null,
+    multiResize: null,
     alignmentGuides: [],
     visualSettings: DEFAULT_VISUAL_SETTINGS,
 
@@ -789,6 +1000,7 @@ export const useInteractionStore = create<InteractionState>()(
           lockAspectRatio: constraints.maintainAspectRatio ?? false,
           snapToIncrement: false,
           snapIncrement: 10,
+          ignoreConstraints: false,
         },
         alignmentGuides: [],
       });
@@ -800,6 +1012,7 @@ export const useInteractionStore = create<InteractionState>()(
 
       const lockAspectRatio = modifiers.shift ?? resize.lockAspectRatio;
       const snapToIncrement = modifiers.ctrl ?? resize.snapToIncrement;
+      const ignoreConstraints = modifiers.alt ?? resize.ignoreConstraints;
 
       const newSize = calculateResizeSize(
         resize.handle,
@@ -809,7 +1022,8 @@ export const useInteractionStore = create<InteractionState>()(
         resize.constraints,
         lockAspectRatio,
         snapToIncrement,
-        resize.snapIncrement
+        resize.snapIncrement,
+        ignoreConstraints
       );
 
       set({
@@ -818,6 +1032,7 @@ export const useInteractionStore = create<InteractionState>()(
           currentSize: newSize,
           lockAspectRatio,
           snapToIncrement,
+          ignoreConstraints,
         },
       });
     },
@@ -840,6 +1055,184 @@ export const useInteractionStore = create<InteractionState>()(
       set({
         activeInteraction: null,
         resize: null,
+        alignmentGuides: [],
+      });
+    },
+
+    // ========================================
+    // Multi-Resize Actions (Proportional)
+    // ========================================
+
+    startMultiResize: (
+      components,
+      handle,
+      startPosition,
+      boundingBox,
+      constraints = DEFAULT_RESIZE_CONSTRAINTS
+    ) => {
+      // Calculate relative positions within the bounding box
+      const componentInfos: MultiResizeComponentInfo[] = components.map(
+        (comp) => ({
+          componentId: comp.componentId,
+          originalSize: { ...comp.size },
+          originalRelativePosition: {
+            x: comp.position.x - boundingBox.x,
+            y: comp.position.y - boundingBox.y,
+          },
+          currentSize: { ...comp.size },
+          currentPosition: { ...comp.position },
+        })
+      );
+
+      set({
+        activeInteraction: "multi-resize",
+        multiResize: {
+          components: componentInfos,
+          handle,
+          startPosition,
+          originalBoundingBox: { ...boundingBox },
+          currentBoundingBox: { ...boundingBox },
+          scaleFactor: { x: 1, y: 1 },
+          lockAspectRatio: constraints.maintainAspectRatio ?? false,
+          snapToIncrement: false,
+          snapIncrement: 10,
+          constraints: {
+            ...DEFAULT_RESIZE_CONSTRAINTS,
+            ...constraints,
+          },
+          ignoreConstraints: false,
+        },
+        alignmentGuides: [],
+      });
+    },
+
+    updateMultiResize: (currentPosition, modifiers = {}) => {
+      const { multiResize } = get();
+      if (!multiResize) return;
+
+      const lockAspectRatio = modifiers.shift ?? multiResize.lockAspectRatio;
+      const snapToIncrement = modifiers.ctrl ?? multiResize.snapToIncrement;
+      const ignoreConstraints = modifiers.alt ?? multiResize.ignoreConstraints;
+
+      // Calculate new bounding box size
+      const newBoundingBoxSize = calculateResizeSize(
+        multiResize.handle,
+        multiResize.startPosition,
+        currentPosition,
+        {
+          width: multiResize.originalBoundingBox.width,
+          height: multiResize.originalBoundingBox.height,
+        },
+        multiResize.constraints,
+        lockAspectRatio,
+        snapToIncrement,
+        multiResize.snapIncrement,
+        ignoreConstraints
+      );
+
+      // Calculate scale factors
+      const scaleX =
+        newBoundingBoxSize.width / multiResize.originalBoundingBox.width;
+      const scaleY =
+        newBoundingBoxSize.height / multiResize.originalBoundingBox.height;
+
+      // Calculate new bounding box position based on handle
+      let newBoundingBoxX = multiResize.originalBoundingBox.x;
+      let newBoundingBoxY = multiResize.originalBoundingBox.y;
+
+      // Adjust position for handles that anchor on opposite sides
+      if (
+        multiResize.handle === "w" ||
+        multiResize.handle === "nw" ||
+        multiResize.handle === "sw"
+      ) {
+        newBoundingBoxX =
+          multiResize.originalBoundingBox.x +
+          multiResize.originalBoundingBox.width -
+          newBoundingBoxSize.width;
+      }
+      if (
+        multiResize.handle === "n" ||
+        multiResize.handle === "nw" ||
+        multiResize.handle === "ne"
+      ) {
+        newBoundingBoxY =
+          multiResize.originalBoundingBox.y +
+          multiResize.originalBoundingBox.height -
+          newBoundingBoxSize.height;
+      }
+
+      // Update each component proportionally
+      const updatedComponents: MultiResizeComponentInfo[] =
+        multiResize.components.map((comp) => {
+          // Scale position relative to bounding box
+          const newRelativeX = comp.originalRelativePosition.x * scaleX;
+          const newRelativeY = comp.originalRelativePosition.y * scaleY;
+
+          // Scale size proportionally
+          const newWidth = comp.originalSize.width * scaleX;
+          const newHeight = comp.originalSize.height * scaleY;
+
+          // Apply constraints unless ignoring for preview mode
+          const minWidth = ignoreConstraints
+            ? 1
+            : (multiResize.constraints.minWidth ?? 10);
+          const minHeight = ignoreConstraints
+            ? 1
+            : (multiResize.constraints.minHeight ?? 10);
+
+          return {
+            ...comp,
+            currentSize: {
+              width: Math.max(minWidth, Math.round(newWidth)),
+              height: Math.max(minHeight, Math.round(newHeight)),
+            },
+            currentPosition: {
+              x: Math.round(newBoundingBoxX + newRelativeX),
+              y: Math.round(newBoundingBoxY + newRelativeY),
+            },
+          };
+        });
+
+      set({
+        multiResize: {
+          ...multiResize,
+          components: updatedComponents,
+          currentBoundingBox: {
+            x: newBoundingBoxX,
+            y: newBoundingBoxY,
+            width: newBoundingBoxSize.width,
+            height: newBoundingBoxSize.height,
+          },
+          scaleFactor: { x: scaleX, y: scaleY },
+          lockAspectRatio,
+          snapToIncrement,
+          ignoreConstraints,
+        },
+      });
+    },
+
+    endMultiResize: () => {
+      const { multiResize } = get();
+      if (!multiResize) return null;
+
+      const finalComponents = multiResize.components.map((comp) => ({
+        ...comp,
+      }));
+
+      set({
+        activeInteraction: null,
+        multiResize: null,
+        alignmentGuides: [],
+      });
+
+      return finalComponents;
+    },
+
+    cancelMultiResize: () => {
+      set({
+        activeInteraction: null,
+        multiResize: null,
         alignmentGuides: [],
       });
     },
@@ -1055,7 +1448,8 @@ export const useInteractionStore = create<InteractionState>()(
       componentId,
       gapIndex,
       startPosition,
-      originalSpacing
+      originalSpacing,
+      direction
     ) => {
       set({
         activeInteraction: "spacing",
@@ -1065,6 +1459,7 @@ export const useInteractionStore = create<InteractionState>()(
           startPosition,
           originalSpacing,
           currentSpacing: originalSpacing,
+          direction,
         },
       });
     },
@@ -1073,12 +1468,17 @@ export const useInteractionStore = create<InteractionState>()(
       const { spacingAdjust } = get();
       if (!spacingAdjust) return;
 
-      // Calculate spacing based on vertical movement (for Column) or horizontal (for Row)
-      // This will be refined when used with actual component context
-      const deltaY = currentPosition.y - spacingAdjust.startPosition.y;
+      // Calculate spacing based on direction:
+      // - Column (vertical): drag down = increase, drag up = decrease
+      // - Row (horizontal): drag right = increase, drag left = decrease
+      const delta =
+        spacingAdjust.direction === "vertical"
+          ? currentPosition.y - spacingAdjust.startPosition.y
+          : currentPosition.x - spacingAdjust.startPosition.x;
+
       const newSpacing = Math.max(
         0,
-        Math.min(200, Math.round(spacingAdjust.originalSpacing + deltaY))
+        Math.min(200, Math.round(spacingAdjust.originalSpacing + delta))
       );
 
       set({
@@ -1107,6 +1507,205 @@ export const useInteractionStore = create<InteractionState>()(
         activeInteraction: null,
         spacingAdjust: null,
       });
+    },
+
+    // ========================================
+    // Table Column Resize Actions
+    // ========================================
+
+    startColumnResize: (
+      componentId,
+      columnIndex,
+      startPosition,
+      originalColumns,
+      totalWidth,
+      minColumnWidth = 20
+    ) => {
+      set({
+        activeInteraction: "column-resize",
+        columnResize: {
+          componentId,
+          columnIndex,
+          startPosition,
+          originalColumns: originalColumns.map((col) => ({ ...col })),
+          currentColumns: originalColumns.map((col) => ({ ...col })),
+          totalWidth,
+          minColumnWidth,
+          snapToGrid: false,
+          snapIncrement: 5,
+        },
+      });
+    },
+
+    updateColumnResize: (currentPosition, modifiers = {}) => {
+      const { columnResize } = get();
+      if (!columnResize) return;
+
+      const snapToGrid = modifiers.ctrl ?? columnResize.snapToGrid;
+
+      // Calculate delta X from start position
+      const deltaX = currentPosition.x - columnResize.startPosition.x;
+
+      // Create copy of columns to modify
+      const newColumns = columnResize.originalColumns.map((col) => ({
+        ...col,
+      }));
+
+      // Get the columns adjacent to the divider
+      const leftColIndex = columnResize.columnIndex;
+      const rightColIndex = columnResize.columnIndex + 1;
+
+      if (
+        leftColIndex >= newColumns.length ||
+        rightColIndex >= newColumns.length
+      ) {
+        return;
+      }
+
+      const leftCol = newColumns[leftColIndex];
+      const rightCol = newColumns[rightColIndex];
+
+      // Handle based on column types
+      if (leftCol.type === "constant" && rightCol.type === "constant") {
+        // Both constant: transfer width between them
+        let newLeftValue = leftCol.value + deltaX;
+        let newRightValue = rightCol.value - deltaX;
+
+        // Apply snap
+        if (snapToGrid) {
+          newLeftValue =
+            Math.round(newLeftValue / columnResize.snapIncrement) *
+            columnResize.snapIncrement;
+          newRightValue =
+            Math.round(newRightValue / columnResize.snapIncrement) *
+            columnResize.snapIncrement;
+        }
+
+        // Enforce minimum widths
+        newLeftValue = Math.max(columnResize.minColumnWidth, newLeftValue);
+        newRightValue = Math.max(columnResize.minColumnWidth, newRightValue);
+
+        // Maintain total width by adjusting if one hit minimum
+        const totalConstant = leftCol.value + rightCol.value;
+        if (newLeftValue + newRightValue !== totalConstant) {
+          if (newLeftValue === columnResize.minColumnWidth) {
+            newRightValue = totalConstant - newLeftValue;
+          } else if (newRightValue === columnResize.minColumnWidth) {
+            newLeftValue = totalConstant - newRightValue;
+          }
+        }
+
+        newColumns[leftColIndex].value = newLeftValue;
+        newColumns[rightColIndex].value = newRightValue;
+      } else if (leftCol.type === "relative" && rightCol.type === "relative") {
+        // Both relative: transfer relative units between them
+        // Calculate the proportion of change based on total width
+        const totalRelative =
+          columnResize.originalColumns
+            .filter((c) => c.type === "relative")
+            .reduce((sum, c) => sum + c.value, 0) || 1;
+
+        const deltaRatio = deltaX / columnResize.totalWidth;
+        const deltaRelative = deltaRatio * totalRelative;
+
+        let newLeftValue = leftCol.value + deltaRelative;
+        let newRightValue = rightCol.value - deltaRelative;
+
+        // Minimum relative value (corresponds to minColumnWidth)
+        const minRelative =
+          (columnResize.minColumnWidth / columnResize.totalWidth) *
+          totalRelative;
+
+        // Enforce minimums
+        newLeftValue = Math.max(minRelative, newLeftValue);
+        newRightValue = Math.max(minRelative, newRightValue);
+
+        // Round for cleaner values
+        newLeftValue = Math.round(newLeftValue * 100) / 100;
+        newRightValue = Math.round(newRightValue * 100) / 100;
+
+        newColumns[leftColIndex].value = newLeftValue;
+        newColumns[rightColIndex].value = newRightValue;
+      } else {
+        // Mixed types: adjust the constant column, relative stays same
+        if (leftCol.type === "constant") {
+          let newValue = leftCol.value + deltaX;
+          if (snapToGrid) {
+            newValue =
+              Math.round(newValue / columnResize.snapIncrement) *
+              columnResize.snapIncrement;
+          }
+          newColumns[leftColIndex].value = Math.max(
+            columnResize.minColumnWidth,
+            newValue
+          );
+        } else if (rightCol.type === "constant") {
+          let newValue = rightCol.value - deltaX;
+          if (snapToGrid) {
+            newValue =
+              Math.round(newValue / columnResize.snapIncrement) *
+              columnResize.snapIncrement;
+          }
+          newColumns[rightColIndex].value = Math.max(
+            columnResize.minColumnWidth,
+            newValue
+          );
+        }
+      }
+
+      set({
+        columnResize: {
+          ...columnResize,
+          currentColumns: newColumns,
+          snapToGrid,
+        },
+      });
+    },
+
+    endColumnResize: () => {
+      const { columnResize } = get();
+      if (!columnResize) return null;
+
+      const finalColumns = columnResize.currentColumns.map((col) => ({
+        ...col,
+      }));
+
+      set({
+        activeInteraction: null,
+        columnResize: null,
+      });
+
+      return finalColumns;
+    },
+
+    cancelColumnResize: () => {
+      set({
+        activeInteraction: null,
+        columnResize: null,
+      });
+    },
+
+    autoSizeColumn: (componentId, columnIndex, contentWidth) => {
+      // This action updates the column to a constant width based on content
+      // The actual calculation of contentWidth should be done by the component
+      // This just applies the value
+      const { columnResize } = get();
+
+      if (columnResize && columnResize.componentId === componentId) {
+        const newColumns = columnResize.currentColumns.map((col, idx) => {
+          if (idx === columnIndex) {
+            return { type: "constant" as const, value: contentWidth };
+          }
+          return { ...col };
+        });
+
+        set({
+          columnResize: {
+            ...columnResize,
+            currentColumns: newColumns,
+          },
+        });
+      }
     },
 
     // ========================================
@@ -1172,6 +1771,8 @@ export const useInteractionStore = create<InteractionState>()(
     getInteractingComponentId: () => {
       const state = get();
       if (state.resize) return state.resize.componentId;
+      if (state.multiResize && state.multiResize.components.length > 0)
+        return state.multiResize.components[0].componentId;
       if (state.rotation) return state.rotation.componentId;
       if (state.translation) return state.translation.componentId;
       if (state.paddingAdjust) return state.paddingAdjust.componentId;
@@ -1185,6 +1786,9 @@ export const useInteractionStore = create<InteractionState>()(
         case "resize":
           get().cancelResize();
           break;
+        case "multi-resize":
+          get().cancelMultiResize();
+          break;
         case "rotation":
           get().cancelRotation();
           break;
@@ -1197,6 +1801,9 @@ export const useInteractionStore = create<InteractionState>()(
         case "spacing":
           get().cancelSpacingAdjust();
           break;
+        case "column-resize":
+          get().cancelColumnResize();
+          break;
       }
     },
 
@@ -1204,10 +1811,12 @@ export const useInteractionStore = create<InteractionState>()(
       set({
         activeInteraction: null,
         resize: null,
+        multiResize: null,
         rotation: null,
         translation: null,
         paddingAdjust: null,
         spacingAdjust: null,
+        columnResize: null,
         alignmentGuides: [],
         visualSettings: DEFAULT_VISUAL_SETTINGS,
       });
@@ -1256,6 +1865,18 @@ export const useSpacingAdjustState = () =>
   useInteractionStore((state) => state.spacingAdjust);
 
 /**
+ * Select column resize state
+ */
+export const useColumnResizeState = () =>
+  useInteractionStore((state) => state.columnResize);
+
+/**
+ * Select multi-resize state
+ */
+export const useMultiResizeState = () =>
+  useInteractionStore((state) => state.multiResize);
+
+/**
  * Select alignment guides
  */
 export const useAlignmentGuides = () =>
@@ -1279,12 +1900,25 @@ export const useIsInteracting = () =>
 export const useInteractingComponentId = () =>
   useInteractionStore((state) => {
     if (state.resize) return state.resize.componentId;
+    if (state.multiResize && state.multiResize.components.length > 0)
+      return state.multiResize.components[0].componentId;
     if (state.rotation) return state.rotation.componentId;
     if (state.translation) return state.translation.componentId;
     if (state.paddingAdjust) return state.paddingAdjust.componentId;
     if (state.spacingAdjust) return state.spacingAdjust.componentId;
+    if (state.columnResize) return state.columnResize.componentId;
     return null;
   });
+
+/**
+ * Get all component IDs being interacted with in multi-resize
+ */
+export const useMultiResizeComponentIds = () =>
+  useInteractionStore((state) =>
+    state.multiResize
+      ? state.multiResize.components.map((c) => c.componentId)
+      : []
+  );
 
 /**
  * Check if a specific component is being interacted with
@@ -1292,10 +1926,15 @@ export const useInteractingComponentId = () =>
 export const useIsComponentInteracting = (componentId: string) =>
   useInteractionStore((state) => {
     if (state.resize?.componentId === componentId) return true;
+    if (
+      state.multiResize?.components.some((c) => c.componentId === componentId)
+    )
+      return true;
     if (state.rotation?.componentId === componentId) return true;
     if (state.translation?.componentId === componentId) return true;
     if (state.paddingAdjust?.componentId === componentId) return true;
     if (state.spacingAdjust?.componentId === componentId) return true;
+    if (state.columnResize?.componentId === componentId) return true;
     return false;
   });
 
@@ -1308,6 +1947,21 @@ export const useResizeDimensions = () =>
       ? {
           width: Math.round(state.resize.currentSize.width),
           height: Math.round(state.resize.currentSize.height),
+        }
+      : null
+  );
+
+/**
+ * Get current multi-resize bounding box dimensions for display
+ */
+export const useMultiResizeDimensions = () =>
+  useInteractionStore((state) =>
+    state.multiResize
+      ? {
+          width: Math.round(state.multiResize.currentBoundingBox.width),
+          height: Math.round(state.multiResize.currentBoundingBox.height),
+          scaleX: Math.round(state.multiResize.scaleFactor.x * 100),
+          scaleY: Math.round(state.multiResize.scaleFactor.y * 100),
         }
       : null
   );
@@ -1329,6 +1983,20 @@ export const useTranslationOffset = () =>
       ? {
           x: Math.round(state.translation.currentOffset.x),
           y: Math.round(state.translation.currentOffset.y),
+        }
+      : null
+  );
+
+/**
+ * Get current column resize info for display
+ */
+export const useColumnResizeInfo = () =>
+  useInteractionStore((state) =>
+    state.columnResize
+      ? {
+          columnIndex: state.columnResize.columnIndex,
+          currentColumns: state.columnResize.currentColumns,
+          originalColumns: state.columnResize.originalColumns,
         }
       : null
   );

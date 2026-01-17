@@ -8,13 +8,20 @@
  * - Multi-select visual feedback (different styles for single vs multi)
  * - Primary selection indicator (in multi-select scenarios)
  * - Animated selection transitions
+ * - Multi-component proportional resize support
  * - Action buttons for quick operations (future)
  */
 "use client";
 
-import { memo, useMemo, type CSSProperties } from "react";
+import { memo, useMemo, useCallback, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import type { BoundingBox } from "@/types/canvas";
+import { useMultiResize, type ComponentBounds } from "@/hooks/useMultiResize";
+import {
+  useInteractionStore,
+  type ResizeHandle,
+} from "@/store/interaction-store";
+import { type HandlePosition } from "./ResizeHandles";
 
 // ============================================================================
 // Types
@@ -398,15 +405,25 @@ SelectionBox.displayName = "SelectionBox";
 
 /**
  * Selection box for multiple selected items
- * Shows a combined bounding box with selection count
+ * Shows a combined bounding box with selection count and resize handles
  */
 function MultiSelectionBoxComponent({
   bounds,
   selectedCount,
   showCount = true,
   zoom = 1,
+  showResizeHandles = false,
+  onResizeHandleMouseDown,
   className,
-}: MultiSelectionBoxProps) {
+}: MultiSelectionBoxProps & {
+  showResizeHandles?: boolean;
+  onResizeHandleMouseDown?: (
+    handle: HandlePosition,
+    event: React.MouseEvent
+  ) => void;
+}) {
+  const handleSize = getScaledHandleSize(zoom);
+
   const boxStyle = useMemo<CSSProperties>(
     () => ({
       position: "absolute",
@@ -418,6 +435,52 @@ function MultiSelectionBoxComponent({
     }),
     [bounds.x, bounds.y, bounds.width, bounds.height]
   );
+
+  // Handle position styles for multi-resize
+  const getHandlePositionStyle = useCallback(
+    (position: HandlePosition): CSSProperties => {
+      const offset = -handleSize / 2;
+      const centerOffset = `calc(50% - ${handleSize / 2}px)`;
+
+      const positions: Record<HandlePosition, CSSProperties> = {
+        nw: { top: offset, left: offset },
+        n: { top: offset, left: centerOffset },
+        ne: { top: offset, right: offset },
+        e: { top: centerOffset, right: offset },
+        se: { bottom: offset, right: offset },
+        s: { bottom: offset, left: centerOffset },
+        sw: { bottom: offset, left: offset },
+        w: { top: centerOffset, left: offset },
+      };
+
+      return positions[position];
+    },
+    [handleSize]
+  );
+
+  // Cursor styles for handles
+  const handleCursors: Record<HandlePosition, string> = {
+    nw: "nwse-resize",
+    n: "ns-resize",
+    ne: "nesw-resize",
+    e: "ew-resize",
+    se: "nwse-resize",
+    s: "ns-resize",
+    sw: "nesw-resize",
+    w: "ew-resize",
+  };
+
+  // All 8 handles
+  const allHandles: HandlePosition[] = [
+    "nw",
+    "n",
+    "ne",
+    "e",
+    "se",
+    "s",
+    "sw",
+    "w",
+  ];
 
   return (
     <div
@@ -449,6 +512,34 @@ function MultiSelectionBoxComponent({
           {selectedCount} selected
         </div>
       )}
+
+      {/* Multi-resize handles */}
+      {showResizeHandles &&
+        allHandles.map((handle) => (
+          <div
+            key={handle}
+            className={cn(
+              "pointer-events-auto absolute z-50 rounded-sm border-2 transition-all duration-100",
+              "border-blue-500 bg-white shadow-sm",
+              "hover:scale-125 hover:shadow-md"
+            )}
+            style={{
+              ...getHandlePositionStyle(handle),
+              width: handleSize,
+              height: handleSize,
+              cursor: handleCursors[handle],
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onResizeHandleMouseDown?.(handle, e);
+            }}
+            data-multi-resize-handle={handle}
+            role="button"
+            aria-label={`Multi-resize ${handle} handle`}
+            tabIndex={0}
+          />
+        ))}
     </div>
   );
 }
@@ -479,6 +570,8 @@ export interface SelectionOverlayProps {
   showLabels?: boolean;
   /** Whether to show resize handles */
   showResizeHandles?: boolean;
+  /** Whether to enable multi-component proportional resize */
+  enableMultiResize?: boolean;
   /** Current canvas zoom level */
   zoom?: number;
   /** Callback when resize starts */
@@ -486,6 +579,19 @@ export interface SelectionOverlayProps {
     componentId: string,
     handle: ResizeHandlePosition,
     event: React.MouseEvent
+  ) => void;
+  /** Callback when multi-resize starts */
+  onMultiResizeStart?: (
+    handle: HandlePosition,
+    event: React.MouseEvent
+  ) => void;
+  /** Callback when multi-resize ends */
+  onMultiResizeEnd?: (
+    components: Array<{
+      componentId: string;
+      width: number;
+      height: number;
+    }> | null
   ) => void;
   /** Additional CSS classes */
   className?: string;
@@ -528,6 +634,7 @@ function calculateCombinedBounds(
 /**
  * Overlay component that renders selection boxes for all selected components
  * Use this at the canvas level to render all selections at once
+ * Supports multi-component proportional resize when multiple components are selected
  */
 function SelectionOverlayComponent({
   selections,
@@ -535,8 +642,11 @@ function SelectionOverlayComponent({
   showIndividualBoxes = true,
   showLabels = false,
   showResizeHandles = false,
+  enableMultiResize = true,
   zoom = 1,
   onResizeStart,
+  onMultiResizeStart,
+  onMultiResizeEnd,
   className,
 }: SelectionOverlayProps) {
   const isMultiSelect = selections.length > 1;
@@ -544,6 +654,41 @@ function SelectionOverlayComponent({
     () => calculateCombinedBounds(selections),
     [selections]
   );
+
+  // Prepare component bounds for multi-resize hook
+  const componentBounds: ComponentBounds[] = useMemo(
+    () =>
+      selections.map(({ id, bounds }) => ({
+        componentId: id,
+        bounds,
+      })),
+    [selections]
+  );
+
+  // Multi-resize hook for proportional resizing
+  const {
+    state: multiResizeState,
+    handleMouseDown: handleMultiResizeMouseDown,
+    canMultiResize,
+  } = useMultiResize({
+    componentBounds,
+    enabled: enableMultiResize && isMultiSelect,
+    onResizeStart: onMultiResizeStart,
+    onResizeEnd: (components) => {
+      if (components) {
+        onMultiResizeEnd?.(
+          components.map((c) => ({
+            componentId: c.componentId,
+            width: c.currentSize.width,
+            height: c.currentSize.height,
+          }))
+        );
+      } else {
+        onMultiResizeEnd?.(null);
+      }
+    },
+    updateStore: true,
+  });
 
   if (selections.length === 0) {
     return null;
@@ -576,14 +721,43 @@ function SelectionOverlayComponent({
           />
         ))}
 
-      {/* Combined multi-selection box */}
+      {/* Combined multi-selection box with resize handles */}
       {isMultiSelect && showCombinedBox && (
         <MultiSelectionBox
-          bounds={combinedBounds}
+          bounds={
+            multiResizeState.isResizing && multiResizeState.currentBoundingBox
+              ? multiResizeState.currentBoundingBox
+              : combinedBounds
+          }
           selectedCount={selections.length}
-          showCount={true}
+          showCount={!multiResizeState.isResizing}
+          showResizeHandles={enableMultiResize && canMultiResize}
+          onResizeHandleMouseDown={handleMultiResizeMouseDown}
           zoom={zoom}
         />
+      )}
+
+      {/* Scale tooltip during multi-resize */}
+      {multiResizeState.isResizing && multiResizeState.currentBoundingBox && (
+        <div
+          className="bg-popover text-popover-foreground pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full transform rounded px-2 py-1 text-xs font-medium shadow-md"
+          style={{
+            left:
+              multiResizeState.currentBoundingBox.x +
+              multiResizeState.currentBoundingBox.width / 2,
+            top: multiResizeState.currentBoundingBox.y - 8,
+          }}
+        >
+          {Math.round(multiResizeState.scaleFactor.x * 100) ===
+          Math.round(multiResizeState.scaleFactor.y * 100) ? (
+            <span>{Math.round(multiResizeState.scaleFactor.x * 100)}%</span>
+          ) : (
+            <span>
+              {Math.round(multiResizeState.scaleFactor.x * 100)}% ×{" "}
+              {Math.round(multiResizeState.scaleFactor.y * 100)}%
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

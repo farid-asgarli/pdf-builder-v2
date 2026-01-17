@@ -35,6 +35,18 @@ export interface ConstraintStatus {
 }
 
 /**
+ * Active resize modes for display
+ */
+export interface ResizeModeStatus {
+  /** Aspect ratio is locked (Shift held) */
+  aspectLocked?: boolean;
+  /** Snapping to grid (Ctrl/Cmd held) */
+  snapping?: boolean;
+  /** Preview mode - constraints ignored (Alt held) */
+  previewMode?: boolean;
+}
+
+/**
  * Props for DimensionTooltip component
  */
 export interface DimensionTooltipProps {
@@ -54,6 +66,8 @@ export interface DimensionTooltipProps {
   zoom?: number;
   /** Constraint status for color feedback */
   constraintStatus?: ConstraintStatus;
+  /** Active resize modes */
+  resizeModes?: ResizeModeStatus;
   /** Show only width (for horizontal-only resize) */
   showWidthOnly?: boolean;
   /** Show only height (for vertical-only resize) */
@@ -178,6 +192,7 @@ function DimensionTooltipComponent({
   position,
   zoom = 1,
   constraintStatus,
+  resizeModes,
   showWidthOnly = false,
   showHeightOnly = false,
   className,
@@ -197,20 +212,32 @@ function DimensionTooltipComponent({
   // Determine if at any constraint
   const hasConstraintWarning =
     constraintStatus &&
+    !resizeModes?.previewMode && // Don't show constraint warnings in preview mode
     (constraintStatus.atMinWidth ||
       constraintStatus.atMaxWidth ||
       constraintStatus.atMinHeight ||
       constraintStatus.atMaxHeight);
 
+  // Check if in preview mode (Alt held)
+  const isPreviewMode = resizeModes?.previewMode ?? false;
+
   // Build dimension text (for accessibility)
   const dimensionText = useMemo(() => {
+    const prefix = isPreviewMode ? "(Preview) " : "";
     if (showWidthOnly) {
-      return `${formattedWidth}${unit}`;
+      return `${prefix}${formattedWidth}${unit}`;
     } else if (showHeightOnly) {
-      return `${formattedHeight}${unit}`;
+      return `${prefix}${formattedHeight}${unit}`;
     }
-    return `${formattedWidth} × ${formattedHeight}${unit}`;
-  }, [formattedWidth, formattedHeight, unit, showWidthOnly, showHeightOnly]);
+    return `${prefix}${formattedWidth} × ${formattedHeight}${unit}`;
+  }, [
+    formattedWidth,
+    formattedHeight,
+    unit,
+    showWidthOnly,
+    showHeightOnly,
+    isPreviewMode,
+  ]);
 
   // Determine warning indicators
   const widthWarning =
@@ -250,15 +277,55 @@ function DimensionTooltipComponent({
           "font-mono text-xs font-medium whitespace-nowrap",
           // Normal state
           "bg-foreground text-background",
-          // Warning state (at constraints)
-          hasConstraintWarning && "bg-destructive text-destructive-foreground"
+          // Preview mode (amber)
+          isPreviewMode && "bg-amber-500 text-white",
+          // Warning state (at constraints) - only when not in preview mode
+          hasConstraintWarning &&
+            !isPreviewMode &&
+            "bg-destructive text-destructive-foreground"
         )}
       >
+        {/* Mode indicators row */}
+        {(resizeModes?.aspectLocked ||
+          resizeModes?.snapping ||
+          isPreviewMode) && (
+          <div className="mb-1 flex items-center gap-1.5 text-[10px] opacity-90">
+            {resizeModes?.aspectLocked && (
+              <span
+                className="flex items-center gap-0.5"
+                title="Aspect ratio locked"
+              >
+                🔒
+              </span>
+            )}
+            {resizeModes?.snapping && (
+              <span
+                className="flex items-center gap-0.5"
+                title="Snapping to grid"
+              >
+                📐
+              </span>
+            )}
+            {isPreviewMode && (
+              <span
+                className="flex items-center gap-0.5 font-semibold"
+                title="Preview mode - values won't be saved"
+              >
+                👁 Preview
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Dimension display with optional warning indicators */}
         <span className="flex items-center gap-1">
           {!showHeightOnly && (
             <span
-              className={cn(widthWarning && "text-destructive-foreground/80")}
+              className={cn(
+                widthWarning &&
+                  !isPreviewMode &&
+                  "text-destructive-foreground/80"
+              )}
             >
               {formattedWidth}
             </span>
@@ -268,7 +335,11 @@ function DimensionTooltipComponent({
           )}
           {!showWidthOnly && (
             <span
-              className={cn(heightWarning && "text-destructive-foreground/80")}
+              className={cn(
+                heightWarning &&
+                  !isPreviewMode &&
+                  "text-destructive-foreground/80"
+              )}
             >
               {formattedHeight}
             </span>
@@ -276,8 +347,8 @@ function DimensionTooltipComponent({
           <span className="opacity-70">{unit}</span>
         </span>
 
-        {/* Constraint indicators */}
-        {hasConstraintWarning && (
+        {/* Constraint indicators - only when not in preview mode */}
+        {hasConstraintWarning && !isPreviewMode && (
           <div className="mt-0.5 text-[10px] opacity-80">
             {constraintStatus?.atMinWidth && "Min W"}
             {constraintStatus?.atMaxWidth && "Max W"}
@@ -289,13 +360,24 @@ function DimensionTooltipComponent({
             {constraintStatus?.atMaxHeight && "Max H"}
           </div>
         )}
+
+        {/* Preview mode note */}
+        {isPreviewMode && (
+          <div className="mt-0.5 text-[10px] opacity-80">
+            Release Alt to apply
+          </div>
+        )}
       </div>
 
       {/* Pointer arrow towards component */}
       <div
         className={cn(
           "absolute h-2 w-2 rotate-45",
-          hasConstraintWarning ? "bg-destructive" : "bg-foreground",
+          isPreviewMode
+            ? "bg-amber-500"
+            : hasConstraintWarning
+              ? "bg-destructive"
+              : "bg-foreground",
           // Position arrow based on tooltip anchor
           tooltipPosition.anchor.includes("bottom") &&
             "top-full left-1/2 -mt-1 -ml-1",

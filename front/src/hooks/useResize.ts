@@ -48,6 +48,8 @@ export interface ResizeState {
   aspectRatioLocked: boolean;
   /** Whether snap mode is active */
   snapActive: boolean;
+  /** Whether constraints are being ignored (preview mode) */
+  constraintsIgnored: boolean;
 }
 
 /**
@@ -175,6 +177,9 @@ export function useResize({
     snapActive: isResizing
       ? (storeResizeState?.snapToIncrement ?? false)
       : false,
+    constraintsIgnored: isResizing
+      ? (storeResizeState?.ignoreConstraints ?? false)
+      : false,
   };
 
   // Calculate constraint status based on current size (using useMemo to avoid setState in effect)
@@ -250,6 +255,7 @@ export function useResize({
       const modifiers = {
         shift: event.shiftKey,
         ctrl: event.ctrlKey || event.metaKey,
+        alt: event.altKey,
       };
 
       updateResize(currentPosition, modifiers);
@@ -261,8 +267,17 @@ export function useResize({
     };
 
     const handleMouseUp = () => {
+      // Check if we were in preview mode (Alt held = ignoreConstraints)
+      const wasInPreviewMode = storeResizeState?.ignoreConstraints ?? false;
       const finalSize = endResize();
       isResizingRef.current = false;
+
+      // Don't apply values if we were in preview mode (Alt was held)
+      // Preview mode is for "what if" scenarios only
+      if (wasInPreviewMode) {
+        callbackRef.current.onResizeEnd?.(null);
+        return;
+      }
 
       // Update canvas store if enabled
       if (updateStore && finalSize) {

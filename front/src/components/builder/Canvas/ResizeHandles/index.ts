@@ -45,6 +45,7 @@ export type {
   DimensionTooltipProps,
   SizeUnit,
   ConstraintStatus,
+  ResizeModeStatus,
 } from "./DimensionTooltip";
 
 // Resize ghost outline component
@@ -53,3 +54,32 @@ export {
   default as ResizeGhostOutlineDefault,
 } from "./ResizeGhostOutline";
 export type { ResizeGhostOutlineProps } from "./ResizeGhostOutline";
+
+// Rotation handle component
+export {
+  RotationHandle,
+  default as RotationHandleDefault,
+} from "./RotationHandle";
+export type { RotationHandleProps } from "./RotationHandle";
+
+// Scale handles component
+export { ScaleHandles, default as ScaleHandlesDefault } from "./ScaleHandles";
+export type {
+  ScaleHandlesProps,
+  ScaleHandlePosition,
+  ScaleConstraints,
+} from "./ScaleHandles";
+
+// Scale tooltip component
+export { ScaleTooltip, default as ScaleTooltipDefault } from "./ScaleTooltip";
+export type { ScaleTooltipProps } from "./ScaleTooltip";
+
+// Translation drag handle component
+export {
+  TranslationDragHandle,
+  default as TranslationDragHandleDefault,
+} from "./TranslationDragHandle";
+export type {
+  TranslationDragHandleProps,
+  TranslationConstraints,
+} from "./TranslationDragHandle";
