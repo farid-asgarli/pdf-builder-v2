@@ -1,0 +1,223 @@
+<Project>
+  <!-- 
+    Shared Build Properties
+    This file is automatically imported by ALL projects in the solution.
+    Define common properties, compiler settings, and build configurations here.
+  -->
+
+  <!-- ============================================= -->
+  <!-- Common Properties -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <!-- Target Framework -->
+    <TargetFramework>net8.0</TargetFramework>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <WarningLevel>4</WarningLevel>
+    <WarningsAsErrors>CS0168;CS0169;CS0219;CS8321;CS8618</WarningsAsErrors>
+    <!-- Language Features -->
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- Assembly Information -->
+    <Company>PDF Builder</Company>
+    <Product>PDF Builder Backend</Product>
+    <Copyright>Copyright © 2026 PDF Builder</Copyright>
+    <Authors>PDF Builder Team</Authors>
+
+    <!-- Version Management -->
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+
+    <!-- Build Settings -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn> <!-- Suppress XML documentation warnings -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>4</WarningLevel>
+
+    <!-- Output -->
+    <OutputType Condition="'$(IsTestProject)' != 'true'">Library</OutputType>
+    <IsPackable Condition="'$(IsTestProject)' == 'true'">false</IsPackable>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Compiler Optimizations -->
+  <!-- ============================================= -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <Optimize>false</Optimize>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>RELEASE;TRACE</DefineConstants>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Code Analysis -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>Default</AnalysisMode>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <CodeAnalysisTreatWarningsAsErrors>false</CodeAnalysisTreatWarningsAsErrors>
+  </PropertyGroup>
+
+
+  <!-- ============================================= -->
+  <!-- Common Package References -->
+  <!-- ============================================= -->
+  <ItemGroup>
+    <!-- All projects get these base packages -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <!-- Code Analysis Packages (all projects) -->
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- ============================================= -->
+  <!-- Test Project Configuration -->
+  <!-- ============================================= -->
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <IsPackable>false</IsPackable>
+    <IsPublishable>false</IsPublishable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Moq" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="coverlet.collector">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- ============================================= -->
+  <!-- InternalsVisibleTo for Testing -->
+  <!-- ============================================= -->
+  <ItemGroup Condition="'$(IsTestProject)' != 'true'">
+    <InternalsVisibleTo Include="$(AssemblyName).UnitTests" />
+    <InternalsVisibleTo Include="$(AssemblyName).IntegrationTests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" /> <!-- For Moq -->
+  </ItemGroup>
+
+  <!-- ============================================= -->
+  <!-- Source Generators -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)/Generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Build Output Paths -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Implicit Usings (Global Using Directives) -->
+  <!-- ============================================= -->
+  <ItemGroup>
+    <!-- Common System namespaces -->
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+
+    <!-- Common .NET Extensions -->
+    <Using Include="Microsoft.Extensions.Logging" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <!-- Test-specific global usings -->
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+    <Using Include="Moq" />
+  </ItemGroup>
+
+  <!-- ============================================= -->
+  <!-- Resource Embedding -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <EmbedAllSources>true</EmbedAllSources>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Deterministic Build -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- NuGet Package Settings -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/yourcompany/pdfbuilder-backend</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/yourcompany/pdfbuilder-backend</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>pdf;generator;questpdf;document;builder</PackageTags>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Documentation -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Platform-specific Settings -->
+  <!-- ============================================= -->
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+    <DefineConstants>$(DefineConstants);UNIX</DefineConstants>
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Roslyn Analyzers Configuration -->
+  <!-- ============================================= -->
+  <PropertyGroup>
+    <!-- Disable specific analyzer rules if needed -->
+    <!-- Example: Disable CA1014 (Mark assemblies with CLSCompliant) -->
+    <!-- <NoWarn>$(NoWarn);CA1014</NoWarn> -->
+  </PropertyGroup>
+
+  <!-- ============================================= -->
+  <!-- Clean Build Artifacts -->
+  <!-- ============================================= -->
+  <Target Name="CleanGeneratedFiles" BeforeTargets="Clean">
+    <RemoveDir Directories="$(CompilerGeneratedFilesOutputPath)" />
+  </Target>
+
+</Project>

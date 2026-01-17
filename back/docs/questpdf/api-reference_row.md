@@ -1,0 +1,136 @@
+# API Reference: Row
+
+Draws a collection of elements horizontally.
+
+It supports paging functionality, allowing content to flow naturally across multiple pages when needed. When required, child items are split across pages, ensuring that the content is not cut off.
+
+## Item Types
+
+For a row element with a width of 100 points that has three items (a relative item of size 1, a relative item of size 5, and a constant item of size 10 points), the items will occupy sizes of 15 points, 75 points, and 10 points respectively.
+
+| Method | Description |
+| --- | --- |
+| ConstantItem | Adds a new item to the row element with a specified constant size. |
+| RelativeItem | Adds a new item to the row element. This item occupies space proportionally to other relative items. |
+| AutoItem | Adds a new item to the row element. The size of this item adjusts based on its content. |
+
+For ConstantItem, you can optionally specify the unit value (default is `Unit.Points`).
+
+```c#
+row.ConstantItem(5, Unit.Centimetre);
+```
+
+> **TIP:** Learn more about supported units in the [Lenght unit types](/concepts/length-unit-types.html) section.
+
+## Basic usage
+
+The Row element uses a lambda function to define its content. Inside the lambda, you can add multiple items using the `Item` method.
+
+```c#
+container
+    .Padding(25)
+    .Width(325)
+    .Row(row =>
+    {
+        row.ConstantItem(100)
+            .Background(Colors.Grey.Medium)
+            .Padding(10)
+            .Text("100pt");
+
+        row.RelativeItem()
+            .Background(Colors.Grey.Lighten1)
+            .Padding(10)
+            .Text("75pt");
+
+        row.RelativeItem(2)
+            .Background(Colors.Grey.Lighten2)
+            .Padding(10)
+            .Text("150pt");
+    });
+```
+
+![example](/api-reference/row-simple.webp)
+
+## Spacing
+
+You can adjust the horizontal spacing between items using the `Spacing` method.
+
+```c#
+container
+    .Padding(25)
+    .Width(220)
+    .Height(50)
+    .Row(row =>
+    {
+        row.Spacing(10);
+
+        row.RelativeItem(2).Background(Colors.Grey.Darken1);
+        row.RelativeItem(3).Background(Colors.Grey.Medium);
+        row.RelativeItem(5).Background(Colors.Grey.Lighten1);
+    });
+```
+
+![example](/api-reference/row-spacing.webp)
+
+Optionally, you can specify the unit value (default is `Unit.Points`).
+
+```c#
+row.Spacing(5, Unit.Millimeters);
+```
+
+> **TIP:** Learn more about supported units in the [Lenght unit types](/concepts/length-unit-types.html) section.
+
+## Custom spacing
+
+You can adjust the spacing between items individually by adding an empty ConstantItem with a specific width.
+
+```c#
+.Row(row =>
+{
+    row.RelativeItem().Background(Colors.Grey.Darken1);
+    row.ConstantItem(10);
+    row.RelativeItem().Background(Colors.Grey.Medium);
+    row.ConstantItem(20);
+    row.RelativeItem().Background(Colors.Grey.Lighten1);
+    row.ConstantItem(30);
+    row.RelativeItem().Background(Colors.Grey.Lighten2);
+});
+```
+
+![example](/api-reference/row-spacing-custom.webp)
+
+## Uniform item height
+
+By default, all items in a Row match the height of the tallest item. This ensures consistent visual alignment, but sometimes it can result in unwanted visual stretching.
+
+To disable this behavior, use the `ShrinkVertical` API:
+
+```c#
+.Row(row =>
+{
+    row.Spacing(15);
+    
+    row.RelativeItem()
+        .Element(LabelStyle)
+        .Text("Programming blends logic and creativity, transforming abstract ideas into working systems. It teaches precision, patience, and the joy of solving problems step by step.");
+    
+    row.RelativeItem()
+        .Element(LabelStyle)
+        .Text("Programming is the craft of turning clear logic into living systems that think and create.");
+    
+    // use helper method to apply the same style to both labels
+    static IContainer LabelStyle(IContainer container) => container
+        .ShrinkVertical()
+        .Background(Colors.Grey.Lighten3)
+        .CornerRadius(15)
+        .Padding(15);
+});
+```
+
+#### Default behavior (consistent item height)
+
+![example](/api-reference/row-uniform-height-disabled.webp)
+
+#### Effect with ShrinkVertical applied
+
+![example](/api-reference/row-uniform-height-enabled.webp)

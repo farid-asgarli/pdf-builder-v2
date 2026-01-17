@@ -1,0 +1,237 @@
+# .NET Core build artifacts
+bin/
+obj/
+out/
+
+# Visual Studio files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code files
+.vscode/
+
+# Rider files
+.idea/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# NuGet packages
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test results
+TestResults/
+*.trx
+*.html
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+
+# Documentation outputs
+_site/
+api/
+docfx.log
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Storage directories (runtime generated)
+storage/
+pdfs/
+images/
+fonts/
+
+# Secrets
+appsettings.*.local.json
+*.pfx
+*.key
+secrets.json
+
+# Entity Framework
+*.db
+*.db-shm
+*.db-wal
+
+# JetBrains Rider
+*.sln.iml
+
+# NCrunch
+*.ncrunch*
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+
+# Files built by Visual Studio
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.tlog
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Windows Store app package directories and files
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_pkginfo.txt
+*.appx
+*.appxbundle
+*.appxupload
+
+# Backup & report files from converting an old project file to a newer Visual Studio version
+_UpgradeReport_Files/
+Backup*/
+UpgradeLog*.XML
+UpgradeLog*.htm
+ServiceFabricBackup/
+*.rptproj.bak
+
+# SQL Server files
+*.mdf
+*.ldf
+*.ndf
+
+# Business Intelligence projects
+*.rdl.data
+*.bim.layout
+*.bim_*.settings
+*.rptproj.rsuser
+*- [Bb]ackup.rdl
+*- [Bb]ackup ([0-9]).rdl
+*- [Bb]ackup ([0-9][0-9]).rdl
+
+# Microsoft Fakes
+FakesAssemblies/
+
+# GhostDoc plugin setting file
+*.GhostDoc.xml
+
+# Web workbench (Sass)
+.sass-cache/
+
+# Installshield output folder
+[Ee]xpress/
+
+# DocProject
+DocProject/buildhelp/
+DocProject/Help/*.HxT
+DocProject/Help/*.HxC
+DocProject/Help/*.hhc
+DocProject/Help/*.hhk
+DocProject/Help/*.hhp
+DocProject/Help/Html2
+DocProject/Help/html
+
+# Click-Once directory
+publish/
+
+# Publish profiles
+*.pubxml
+!**/PublishProfiles/*.pubxml
+!*PublishProfiles/*.pubxml
+
+# NuGet
+*.nuget.props
+*.nuget.targets
+
+# Chutzpah Test files
+_Chutzpah*
+
+# Local History for Visual Studio
+.localhistory/
+
+# Local History for Visual Studio Code
+.history/
+
+# Benchmark results
+BenchmarkDotNet.Artifacts/
+
+# Windows Installer files from build outputs
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# LaunchSettings sensitive
+launchSettings.json
+
+# Azure Pipelines
+artifacts/
+
+# JustMock
+*.jmconfig
+
+# Local development settings
+local.settings.json

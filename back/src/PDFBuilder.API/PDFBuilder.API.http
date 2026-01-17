@@ -1,0 +1,6 @@
+@PDFBuilder.API_HostAddress = http://localhost:5273
+
+GET {{PDFBuilder.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

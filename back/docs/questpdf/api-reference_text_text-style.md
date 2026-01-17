@@ -1,0 +1,403 @@
+# API Reference: Text Text Style
+
+## Font Size
+
+Font size measures the height of text characters, determining how large or small the text appears.
+
+It's worth noting that different fonts may render text with different visual sizes, even when assigned the same numerical font size.
+
+```c#
+.Column(column =>
+{
+    column.Spacing(10);
+
+    column.Item()
+        .Text("This is small text (16pt)")
+        .FontSize(16);
+
+    column.Item()
+        .Text("This is medium text (24pt)")
+        .FontSize(24);
+
+    column.Item()
+        .Text("This is large text (36pt)")
+        .FontSize(36);
+});
+```
+
+![example](/api-reference/text-font-size.webp)
+
+## Font Family
+
+A font family is a collection of related fonts that share a consistent design style but may vary in weight, style, or width.
+
+Examples of font families include Arial, Times New Roman, and Calibri.
+
+```c#
+.Column(column =>
+{
+    column.Spacing(10);
+
+    column.Item().Text("This is text with default font (Lato)");
+
+    column.Item().Text("This is text with Times New Roman font")
+        .FontFamily("Times New Roman");
+
+    column.Item().Text("This is text with Courier New font")
+        .FontFamily("Courier New");
+});
+```
+
+![example](/api-reference/text-font-family.webp)
+
+## Font Fallback
+
+The Font Fallback option is a list of alternative fonts that are used when specific glyphs are unavailable in the primary font. This ensures that text is displayed correctly across different systems and environments.
+
+A common example is the display of non-Latin characters, such as Arabic or Chinese, which may not be supported by all fonts.
+
+```c#
+container
+    .Text("The Arabic word for programming is البرمجة.")
+    .FontFamily("Lato", "Noto Sans Arabic");
+```
+
+![example](/api-reference/text-font-fallback.webp)
+
+It's also useful for displaying emojis, which are not universally supported by all fonts.
+
+```c#
+container
+    .Text("Popular emojis include 😊, 😂, ❤️, 👍, and 😎.")
+    .FontFamily("Lato", "Noto Emoji");
+```
+
+![example](/api-reference/text-font-fallback-emoji.webp)
+
+## Font Color
+
+The font color determines the color applied to text characters, affecting their visual appearance.
+
+It also influences the default color of text decorations, such as underlines.
+
+```c#
+.Text(text =>
+{
+    text.Span("Each pixels consists of three sub-pixels: ");
+    text.Span("red").FontColor(Colors.Red.Medium);
+    text.Span(", ");
+    text.Span("green").FontColor(Colors.Green.Medium);
+    text.Span(" and ");
+    text.Span("blue").FontColor(Colors.Blue.Medium);
+    text.Span(".");
+});
+```
+
+![example](/api-reference/text-font-color.webp)
+
+## Background Color
+
+Sets a solid background color for the text.
+
+This color fills the area behind the text or other elements, enhancing contrast and providing visual emphasis.
+
+```c#
+.Text(text =>
+{
+    text.Span("The term ");
+    text.Span("algorithm").BackgroundColor(Colors.Yellow.Lighten3).Bold();
+    text.Span("  ");
+});
+```
+
+![example](/api-reference/text-font-background.webp)
+
+## Font Weight
+
+Determines the thickness of the text characters, ranging from light to bold, to create visual hierarchy or emphasis.
+
+Please note that not all fonts support every weight. If the specified weight isn't available, the library selects the closest available option.
+
+| Name | CSS Value | Example Text |
+| --- | --- | --- |
+| Thin | 100 | Example |
+| ExtraLight | 200 | Example |
+| Light | 300 | Example |
+| NormalWeight | 400 | Example |
+| Medium | 500 | Example |
+| SemiBold | 600 | Example |
+| Bold | 700 | Example |
+| ExtraBold | 800 | Example |
+| Black | 900 | Example |
+| ExtraBlack | 1000 | Example |
+
+```c#
+.Text(text =>
+{
+    text.Span("This sentence demonstrates ");
+    text.Span("bold").Bold();
+    text.Span(", ");
+    text.Span("normal").NormalWeight();
+    text.Span(", ");
+    text.Span("light").Light();
+    text.Span(" and ");
+    text.Span("thin").Thin();
+    text.Span(" font weights.");
+});
+```
+
+![example](/api-reference/text-font-weight.webp)
+
+> **WARNING:** QuestPDF does not currently support fonts with variable weights.
+
+## Italic
+
+Renders text with an italic effect, where letters are slightly slanted to the right.
+
+Commonly used for emphasis or to distinguish specific words.
+
+```c#
+.Text(text =>
+{
+    text.Span("In this sentence, the word ");
+    text.Span("important").Italic();
+    text.Span(" is emphasized using italics.");
+});
+```
+
+![example](/api-reference/text-font-italic.webp)
+
+## Decorations
+
+Applies decorative lines on text. Commonly used to emphasize specific words or phrases.
+
+### Positions
+
+It is also possible to customize the decoration position:
+
+- Underline,
+- Strikethrough,
+- Overline.
+
+```c#
+.Text(text =>
+{
+    text.Span("There are a couple of available text decorations: ");
+    text.Span("underline").Underline().FontColor(Colors.Red.Medium);
+    text.Span(", ");
+    text.Span("strikethrough").Strikethrough().FontColor(Colors.Green.Medium);
+    text.Span(" and ");
+    text.Span("overline").Overline().FontColor(Colors.Blue.Medium);
+    text.Span(". ");
+});
+```
+
+![example](/api-reference/text-decoration-types.webp)
+
+### Styles
+
+It is also possible to customize the decoration line style:
+
+- DecorationSolid,
+- DecorationDouble,
+- DecorationWavy,
+- DecorationDotted,
+- DecorationDashed.
+
+```c#
+.Text(text =>
+{
+    text.Span("Moreover, the decoration can be ");
+    text.Span("solid").Underline().DecorationSolid().FontColor(Colors.Indigo.Medium);
+    text.Span(", ");
+    text.Span("double").Underline().DecorationDouble().FontColor(Colors.Blue.Medium);
+    text.Span(", ");
+    text.Span("wavy").Underline().DecorationWavy().FontColor(Colors.LightBlue.Medium);
+    text.Span(", ");
+    text.Span("dotted").Underline().DecorationDotted().FontColor(Colors.Cyan.Medium);
+    text.Span(" or ");
+    text.Span("dashed").Underline().DecorationDashed().FontColor(Colors.Green.Medium);
+    text.Span(".");
+});
+```
+
+![example](/api-reference/text-decoration-styles.webp)
+
+### Styling
+
+By default, the decoration line color is the same as the text color, and the decoration thickness is determined by the font. However, these properties can be customized.
+
+```c#
+.Text(text =>
+{
+    text.Span("This text contains a ");
+    
+    text.Span("seriuos")
+        .Underline()
+        .DecorationWavy()
+        .DecorationColor(Colors.Red.Medium)
+        .DecorationThickness(2);
+    
+    text.Span(" typo.");
+});
+```
+
+![example](/api-reference/text-decoration-advanced.webp)
+
+## Subscript
+
+Subscript displays text slightly below the baseline, often in a smaller size. Commonly used for chemical formulas or mathematical notations
+
+```c#
+.Text(text =>
+{
+    text.Span("H");
+    text.Span("2").Subscript();
+    text.Span("O is the chemical formula for water.");
+});
+```
+
+![example](/api-reference/text-subscript.webp)
+
+## Superscript
+
+Superscript displays text slightly above the baseline, often in a smaller size. Typically used for exponents, footnotes, or ordinal indicators
+
+```c#
+.Text(text =>
+{
+    text.Span("E = mc");
+    text.Span("2").Superscript();
+    text.Span(" is the equation of mass-energy equivalence.");
+});
+```
+
+![example](/api-reference/text-superscript.webp)
+
+## Line Height
+
+Adjusts the vertical spacing between lines of text, affecting readability and overall text layout. The added space is proportional to the text size.
+
+```c#
+.Column(column =>
+{
+    column.Spacing(20);
+
+    float[] lineHeights = [0.75f, 1f, 2f];
+    var paragraph = Placeholders.Paragraph();
+    
+    foreach (var lineHeight in lineHeights)
+    {
+        column
+            .Item()
+            .Background(Colors.Grey.Lighten3)
+            .Padding(5)
+            .Text(paragraph)
+            .FontSize(16)
+            .LineHeight(lineHeight);
+    }
+});
+```
+
+![example](/api-reference/text-line-height.webp)
+
+## Letter Spacing
+
+Adjusts the horizontal spacing between characters in the text, affecting readability and overall visual style.
+
+The adjustment is proportional to the text size.
+
+```c#
+.Column(column =>
+{
+    column.Spacing(20);
+    
+    var letterSpacing = new[] { -0.08f, 0f, 0.2f };
+    var paragraph = Placeholders.Sentence();
+
+    foreach (var spacing in letterSpacing)
+    {
+        column
+            .Item()
+            .Background(Colors.Grey.Lighten3)
+            .Padding(5)
+            .Text(paragraph)
+            .FontSize(18)
+            .LetterSpacing(spacing);
+    }
+});
+```
+
+![example](/api-reference/text-letter-spacing.webp)
+
+## Word Spacing
+
+Adjusts the horizontal spacing between words in the text, affecting readability and overall visual style. The adjustment is proportional to the text size.
+
+```c#
+.Column(column =>
+{
+    column.Spacing(20);
+    
+    var wordSpacing = new[] { -0.2f, 0f, 0.4f };
+    var paragraph = Placeholders.Sentence();
+
+    foreach (var spacing in wordSpacing)
+    {
+        column.Item()
+            .Background(Colors.Grey.Lighten3)
+            .Padding(5)
+            .Text(paragraph)
+            .FontSize(16)
+            .WordSpacing(spacing);
+    }
+});
+```
+
+![example](/api-reference/text-word-spacing.webp)
+
+## Font Features
+
+Font features are a set of typographic features that can be applied to text to enhance its appearance. They are used to control various aspects of text rendering.
+
+Font features are always encoded as 4-character long strings. For example, the ligatures feature is encode as `liga`, while the kernig feature as `kern`. For a list of available features, refer to the `QuestPDF.Helpers.FontFeatures` class.
+
+> **TIP:** Please note that fonts usually support only a subset of font features. If you try to enable a feature that is not supported by the font, it will be ignored. Moreover, some fonts have features enabled by default, and you may not see any difference when enabling them.
+
+### Example
+
+Let's analyze the `StandardLigatures` font feature, which replaces specific pairs of letters (such as 'fi' or 'fl') with a single, combined glyph to enhance aesthetics.
+
+```c#
+.Row(row =>
+{
+    row.Spacing(25);
+
+    row.RelativeItem()
+        .Background(Colors.Grey.Lighten3)
+        .Padding(10)
+        .Column(column =>
+        {
+            column.Item().Text("Without ligatures").FontSize(16);
+            
+            column.Item()
+                .Text("fly and fight")
+                .FontSize(32)
+                .DisableFontFeature(FontFeatures.StandardLigatures);
+        });
+
+    row.RelativeItem()
+        .Background(Colors.Grey.Lighten3)
+        .Padding(10)
+        .Column(column =>
+        {
+            column.Item().Text("With ligatures").FontSize(16);
+            
+            column.Item().Text("fly and fight")
+                .FontSize(32)
+                .EnableFontFeature(FontFeatures.StandardLigatures);
+        });
+});
+```
+
+![example](/api-reference/text-font-features.webp)

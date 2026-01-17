@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PDFBuilder.Contracts</RootNamespace>
+    <AssemblyName>PDFBuilder.Contracts</AssemblyName>
+    <Description>DTOs, API requests/responses, and data contracts for PDF Builder</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Data Annotations for DTO validation attributes -->
+    <PackageReference Include="System.ComponentModel.Annotations" />
+    <!-- JSON serialization -->
+    <PackageReference Include="System.Text.Json" />
+    <!-- Object mapping -->
+    <PackageReference Include="AutoMapper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Reference to Core domain models for mapping -->
+    <ProjectReference Include="..\PDFBuilder.Core\PDFBuilder.Core.csproj" />
+  </ItemGroup>
+
+</Project>

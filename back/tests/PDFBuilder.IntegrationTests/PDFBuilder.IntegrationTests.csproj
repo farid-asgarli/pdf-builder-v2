@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsTestProject>true</IsTestProject>
+        <RootNamespace>PDFBuilder.IntegrationTests</RootNamespace>
+        <AssemblyName>PDFBuilder.IntegrationTests</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Additional Test Packages (base packages added via Directory.Build.props) -->
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+        <PackageReference Include="Bogus" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Project References -->
+        <ProjectReference Include="..\..\src\PDFBuilder.API\PDFBuilder.API.csproj" />
+        <ProjectReference Include="..\PDFBuilder.TestUtilities\PDFBuilder.TestUtilities.csproj" />
+    </ItemGroup>
+
+</Project>

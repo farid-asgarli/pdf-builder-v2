@@ -1,0 +1,17 @@
+[*.cs]
+
+# Unused code warnings
+dotnet_diagnostic.CS0168.severity = warning   # Variable declared but never used
+dotnet_diagnostic.CS0169.severity = warning   # Field is never used
+dotnet_diagnostic.CS0219.severity = warning   # Variable assigned but value never used
+dotnet_diagnostic.CS8321.severity = warning   # Local function declared but never used
+dotnet_diagnostic.CS8618.severity = warning   # Non-nullable field must contain a non-null value
+
+# Analyzer warnings
+dotnet_diagnostic.IDE0051.severity = warning  # Remove unused private members
+dotnet_diagnostic.IDE0052.severity = warning  # Remove unread private members
+dotnet_diagnostic.IDE0059.severity = warning  # Unnecessary value assignment
+dotnet_diagnostic.IDE0060.severity = warning  # Remove unused parameter
+
+# Enable unused parameter checking for all methods
+dotnet_code_quality_unused_parameters = all

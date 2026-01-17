@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PDFBuilder.Core</RootNamespace>
+    <AssemblyName>PDFBuilder.Core</AssemblyName>
+    <Description>Core domain models, interfaces, and business logic for PDF Builder</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- System.Text.Json for JSON serialization in domain models -->
+    <PackageReference Include="System.Text.Json" />
+
+    <!-- QuestPDF for PDF generation interfaces -->
+    <PackageReference Include="QuestPDF" />
+  </ItemGroup>
+
+</Project>

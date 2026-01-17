@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PDFBuilder.API</RootNamespace>
+    <AssemblyName>PDFBuilder.API</AssemblyName>
+    <Description>ASP.NET Core Web API for PDF Builder</Description>
+    <UserSecretsId>pdfbuilder-api-secrets</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ASP.NET Core -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Filters" />
+
+    <!-- Validation -->
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+
+    <!-- Logging -->
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Enrichers.Environment" />
+    <PackageReference Include="Serilog.Enrichers.Thread" />
+
+    <!-- Health Checks -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" />
+
+    <!-- HTTP Client with resilience -->
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+
+    <!-- API Versioning -->
+    <PackageReference Include="Asp.Versioning.Mvc" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" />
+
+    <!-- Mapping -->
+    <PackageReference Include="AutoMapper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Project References -->
+    <ProjectReference Include="..\PDFBuilder.Contracts\PDFBuilder.Contracts.csproj" />
+    <ProjectReference Include="..\PDFBuilder.Core\PDFBuilder.Core.csproj" />
+    <ProjectReference Include="..\PDFBuilder.Engine\PDFBuilder.Engine.csproj" />
+    <ProjectReference Include="..\PDFBuilder.Infrastructure\PDFBuilder.Infrastructure.csproj" />
+    <ProjectReference Include="..\PDFBuilder.Validation\PDFBuilder.Validation.csproj" />
+  </ItemGroup>
+
+</Project>

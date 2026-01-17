@@ -1,0 +1,56 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PDFBuilder.Engine</RootNamespace>
+    <AssemblyName>PDFBuilder.Engine</AssemblyName>
+    <Description>Layout engine, renderers, and PDF generation components for PDF Builder</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PDF Generation -->
+    <PackageReference Include="QuestPDF" />
+
+    <!-- Expression Evaluation -->
+    <PackageReference Include="DynamicExpresso.Core" />
+
+    <!-- Image Processing -->
+    <PackageReference Include="SixLabors.ImageSharp" />
+
+    <!-- QR Code & Barcode -->
+    <PackageReference Include="QRCoder" />
+    <PackageReference Include="ZXing.Net" />
+
+    <!-- Charts -->
+    <PackageReference Include="ScottPlot" />
+
+    <!-- Caching -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+
+    <!-- Object Pooling -->
+    <PackageReference Include="Microsoft.Extensions.ObjectPool" />
+
+    <!-- HTTP Client (for external images) -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
+
+    <!-- Configuration -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+
+    <!-- Logging -->
+    <PackageReference Include="Serilog" />
+
+    <!-- Options -->
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Project References -->
+    <ProjectReference Include="..\PDFBuilder.Core\PDFBuilder.Core.csproj" />
+    <ProjectReference Include="..\PDFBuilder.Contracts\PDFBuilder.Contracts.csproj" />
+    <ProjectReference Include="..\PDFBuilder.Infrastructure\PDFBuilder.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

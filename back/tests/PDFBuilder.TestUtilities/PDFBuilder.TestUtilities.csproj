@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>PDFBuilder.TestUtilities</RootNamespace>
+        <AssemblyName>PDFBuilder.TestUtilities</AssemblyName>
+        <Description>Shared test utilities, builders, and fixtures for PDF Builder tests</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Test Data Generation -->
+        <PackageReference Include="Bogus" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Project References -->
+        <ProjectReference Include="..\..\src\PDFBuilder.Core\PDFBuilder.Core.csproj" />
+        <ProjectReference Include="..\..\src\PDFBuilder.Contracts\PDFBuilder.Contracts.csproj" />
+    </ItemGroup>
+
+</Project>

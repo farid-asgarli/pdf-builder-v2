@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PDFBuilder.Infrastructure</RootNamespace>
+    <AssemblyName>PDFBuilder.Infrastructure</AssemblyName>
+    <Description>Infrastructure layer including database, external services, and configuration for
+      PDF Builder</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Database (PostgreSQL) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <!-- Configuration -->
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+
+    <!-- HTTP Client -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
+
+    <!-- Image Processing -->
+    <PackageReference Include="SixLabors.ImageSharp" />
+
+    <!-- Logging -->
+    <PackageReference Include="Serilog" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Project References -->
+    <ProjectReference Include="..\PDFBuilder.Core\PDFBuilder.Core.csproj" />
+  </ItemGroup>
+
+</Project>

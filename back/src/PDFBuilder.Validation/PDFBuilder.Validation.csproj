@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>PDFBuilder.Validation</RootNamespace>
+    <AssemblyName>PDFBuilder.Validation</AssemblyName>
+    <Description>Validation logic and FluentValidation validators for PDF Builder</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Validation -->
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+
+    <!-- Expression Evaluation for validation -->
+    <PackageReference Include="DynamicExpresso.Core" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Project References -->
+    <ProjectReference Include="..\PDFBuilder.Core\PDFBuilder.Core.csproj" />
+    <ProjectReference Include="..\PDFBuilder.Contracts\PDFBuilder.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
