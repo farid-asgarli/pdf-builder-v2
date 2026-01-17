@@ -14,9 +14,10 @@
  */
 "use client";
 
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { useSelectionStore } from "@/store/selection-store";
 import { useCanvasStore } from "@/store/canvas-store";
 import {
@@ -25,15 +26,18 @@ import {
   ColorPicker,
   SelectField,
   ImageUploader,
+  ListItemEditorModal,
 } from "../fields";
 import type { SelectOption } from "../fields/SelectField";
 import type { ComponentType, LayoutNode } from "@/types/component";
+import type { ListItemDto } from "@/types/properties";
 import {
   Type,
   Image as ImageIcon,
   Link,
   QrCode,
   List,
+  ListOrdered,
   Minus,
   Square,
 } from "lucide-react";
@@ -365,10 +369,29 @@ function QRCodeContent({ component, onPropertyChange }: ContentTypeProps) {
  * List content properties
  */
 function ListContent({ component, onPropertyChange }: ContentTypeProps) {
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const properties = getProperties(component);
-  const listType = (properties.listType as string) ?? "unordered";
+  const listType =
+    (properties.listType as "ordered" | "unordered" | "none") ?? "unordered";
   const spacing = properties.spacing as number | undefined;
   const bulletCharacter = (properties.bulletCharacter as string) ?? "•";
+  const items = (properties.items as ListItemDto[]) ?? [];
+
+  const handleSaveItems = useCallback(
+    (newItems: ListItemDto[]) => {
+      onPropertyChange("items", newItems);
+    },
+    [onPropertyChange]
+  );
+
+  // Count total items including nested
+  const countItems = (itemList: ListItemDto[]): number => {
+    return itemList.reduce((count, item) => {
+      return count + 1 + (item.children ? countItems(item.children) : 0);
+    }, 0);
+  };
+
+  const totalItems = countItems(items);
 
   return (
     <div className="space-y-4">
@@ -406,6 +429,45 @@ function ListContent({ component, onPropertyChange }: ContentTypeProps) {
         placeholder="0"
         allowEmpty
         helpText="Space between list items"
+      />
+
+      {/* List Items Editor Button */}
+      <div className="space-y-2">
+        <Label className="text-xs">List Items</Label>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => setIsEditorOpen(true)}
+          >
+            <ListOrdered className="mr-2 h-4 w-4" />
+            Edit Items
+            {totalItems > 0 && (
+              <span className="bg-primary/10 ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium">
+                {totalItems}
+              </span>
+            )}
+          </Button>
+        </div>
+        {totalItems === 0 ? (
+          <p className="text-muted-foreground text-[10px]">
+            No items defined. Click to add list items.
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-[10px]">
+            {totalItems} item{totalItems !== 1 ? "s" : ""} defined.
+          </p>
+        )}
+      </div>
+
+      {/* List Item Editor Modal */}
+      <ListItemEditorModal
+        open={isEditorOpen}
+        onOpenChange={setIsEditorOpen}
+        items={items}
+        onSave={handleSaveItems}
+        listType={listType}
       />
     </div>
   );

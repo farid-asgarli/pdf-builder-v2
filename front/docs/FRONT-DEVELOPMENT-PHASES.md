@@ -1231,20 +1231,20 @@ Update Resize Handles
 #### Tier 2 Component Renderers
 
 - [ ] LineRenderer
-- [ ] HyperlinkRenderer
-- [ ] LayersRenderer (with layer visualization)
-- [ ] DecorationRenderer (header/footer indicators)
-- [ ] RoundedCornersRenderer
-- [ ] AlignmentRenderers (visual alignment guides)
+- [x] HyperlinkRenderer
+- [x] LayersRenderer (with layer visualization)
+- [x] DecorationRenderer (header/footer indicators)
+- [x] RoundedCornersRenderer
+- [x] AlignmentRenderers (visual alignment guides)
 
 #### Tier 3 Component Renderers
 
-- [ ] ListRenderer (nested list structure)
-- [ ] QRCodeRenderer (QR preview)
-- [ ] BarcodeRenderer (barcode preview)
+- [x] ListRenderer (nested list structure)
+- [x] QRCodeRenderer (QR preview)
+- [x] BarcodeRenderer (barcode preview)
 - [ ] RotateRenderer (rotation visual)
 - [ ] ScaleRenderer (scale indicator)
-- [ ] TranslateRenderer (offset visual)
+- [x] TranslateRenderer (offset visual)
 
 #### Advanced Properties
 

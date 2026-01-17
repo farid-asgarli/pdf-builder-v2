@@ -74,7 +74,7 @@ export interface UseMultiResizeOptions {
   /** Snap increment in pixels (default: 10) */
   snapIncrement?: number;
   /** Callback when resize starts */
-  onResizeStart?: (handle: HandlePosition) => void;
+  onResizeStart?: (handle: HandlePosition, event: React.MouseEvent) => void;
   /** Callback during resize with current scale */
   onResize?: (scaleFactor: { x: number; y: number }) => void;
   /** Callback when resize ends with final component info */
@@ -288,7 +288,7 @@ export function useMultiResize({
       );
 
       isResizingRef.current = true;
-      onResizeStart?.(handle);
+      onResizeStart?.(handle, event);
     },
     [
       enabled,
@@ -373,6 +373,7 @@ export function useMultiResize({
   }, [
     isResizing,
     storeMultiResizeState?.scaleFactor,
+    storeMultiResizeState?.ignoreConstraints,
     updateMultiResize,
     endMultiResize,
     storeCancelMultiResize,

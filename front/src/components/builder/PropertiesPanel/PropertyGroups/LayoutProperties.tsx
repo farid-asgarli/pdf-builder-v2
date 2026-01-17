@@ -23,11 +23,11 @@ import { NumberField, ToggleField, SelectField } from "../fields";
 import type { SelectOption } from "../fields/SelectField";
 import type { ComponentType, LayoutNode } from "@/types/component";
 import type { TableColumn } from "@/types/properties";
+import { LayersPanel } from "./LayersPanel";
 import {
   Columns,
   Rows,
   Table2,
-  Layers,
   LayoutGrid,
   AlignHorizontalJustifyCenter,
   Plus,
@@ -334,30 +334,10 @@ function TableLayoutContent({ component, onPropertyChange }: LayoutTypeProps) {
 }
 
 /**
- * Layers layout properties (no specific properties)
+ * Layers layout properties with full layer management panel
  */
 function LayersLayoutContent({ component }: LayoutTypeProps) {
-  const childCount = component.children?.length ?? 0;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Layers className="text-muted-foreground h-4 w-4" />
-        <Label className="text-xs font-medium">Layers</Label>
-      </div>
-
-      <div className="bg-muted/50 rounded-md p-2">
-        <p className="text-muted-foreground text-xs">
-          Layers: {childCount} item{childCount !== 1 ? "s" : ""}
-        </p>
-        <p className="text-muted-foreground mt-1 text-[10px]">
-          Children are stacked on top of each other (Z-order).
-          <br />
-          First child is at the bottom, last child is on top.
-        </p>
-      </div>
-    </div>
-  );
+  return <LayersPanel componentId={component.id} useSelection={false} />;
 }
 
 /**

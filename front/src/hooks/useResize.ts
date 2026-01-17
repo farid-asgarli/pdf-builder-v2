@@ -315,6 +315,7 @@ export function useResize({
   }, [
     isResizing,
     storeResizeState?.currentSize,
+    storeResizeState?.ignoreConstraints,
     updateResize,
     endResize,
     storeCancelResize,

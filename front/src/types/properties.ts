@@ -24,6 +24,32 @@ export interface TableColumn {
 }
 
 /**
+ * Table cell definition with spanning and positioning
+ * Aligned with backend TableCellDefinition
+ */
+export interface TableCellData {
+  /** Number of rows this cell spans (default: 1) */
+  rowSpan?: number;
+  /** Number of columns this cell spans (default: 1) */
+  columnSpan?: number;
+  /** Explicit 1-based row position (optional) */
+  row?: number;
+  /** Explicit 1-based column position (optional) */
+  column?: number;
+  /** Cell content - can be any LayoutNode */
+  content?: unknown;
+}
+
+/**
+ * Table row definition
+ * Aligned with backend TableRowDefinition
+ */
+export interface TableRowData {
+  /** Cells in this row */
+  cells: TableCellData[];
+}
+
+/**
  * Canvas drawing command
  */
 export interface CanvasDrawingCommand {
@@ -158,13 +184,43 @@ export interface HyperlinkProperties {
   url: string;
 }
 
+/**
+ * Represents a list item with optional nested children
+ */
+export interface ListItemDto {
+  /** Text content of the list item (supports {{ expression }} syntax) */
+  content: string;
+  /** Optional nested list items */
+  children?: ListItemDto[];
+  /** Override list type for this item */
+  type?: "ordered" | "unordered" | "none";
+}
+
 export interface ListProperties {
-  /** Ordered (numbered) or unordered (bulleted) */
-  listType?: "ordered" | "unordered";
-  /** Space between list items */
+  /** Ordered (numbered), unordered (bulleted), or none */
+  listType?: "ordered" | "unordered" | "none";
+  /** Space between list items in points */
   spacing?: number;
-  /** Character used for unordered list bullets */
+  /** Character used for unordered list bullets (default: "•") */
   bulletCharacter?: string;
+  /** List items array */
+  items?: ListItemDto[];
+  /** Indentation per nesting level in points (default: 20) */
+  indentSize?: number;
+  /** Starting number for ordered lists (default: 1) */
+  startIndex?: number;
+  /** Number format for ordered lists */
+  numberFormat?: "decimal" | "alpha" | "alpha-lower" | "roman" | "roman-lower";
+  /** Color of bullet/number in hex format */
+  bulletColor?: string;
+  /** Size of bullet character in points */
+  bulletSize?: number;
+  /** Font family for list text */
+  fontFamily?: string;
+  /** Font size for list text in points */
+  fontSize?: number;
+  /** Text color in hex format */
+  color?: string;
 }
 
 export interface CanvasProperties {
@@ -240,8 +296,16 @@ export interface BackgroundProperties {
 }
 
 export interface RoundedCornersProperties {
-  /** Corner radius in points */
-  radius: number;
+  /** Uniform corner radius on all corners in points */
+  all?: number;
+  /** Top-left corner radius in points */
+  topLeft?: number;
+  /** Top-right corner radius in points */
+  topRight?: number;
+  /** Bottom-left corner radius in points */
+  bottomLeft?: number;
+  /** Bottom-right corner radius in points */
+  bottomRight?: number;
 }
 
 export interface ShadowProperties {
@@ -316,6 +380,17 @@ export interface AlignmentProperties {
   horizontal?: "left" | "center" | "right" | "start" | "end";
   /** Vertical alignment */
   vertical?: "top" | "middle" | "bottom";
+  /** Combined position shorthand (overrides horizontal and vertical) */
+  position?:
+    | "topLeft"
+    | "topCenter"
+    | "topRight"
+    | "middleLeft"
+    | "middleCenter"
+    | "middleRight"
+    | "bottomLeft"
+    | "bottomCenter"
+    | "bottomRight";
 }
 
 export interface AspectRatioProperties {

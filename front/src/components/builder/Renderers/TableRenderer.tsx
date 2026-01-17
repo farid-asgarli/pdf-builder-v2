@@ -10,10 +10,18 @@
  * - Empty state placeholder
  * - Visual indicators for table structure (header, footer)
  * - Cell spanning visualization
+ * - Interactive column width adjustment via drag handles
  */
 "use client";
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, {
+  memo,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
 import { cn } from "@/lib/utils";
 import type { RendererProps } from "./types";
 import {
@@ -26,6 +34,8 @@ import { registerRenderer } from "./registry";
 import type { TableProperties, TableColumn } from "@/types/properties";
 import { ComponentType } from "@/types/component";
 import { Table2, GripHorizontal } from "lucide-react";
+import { TableColumnResizer } from "../Canvas/Interactions";
+import { useCanvasStore } from "@/store/canvas-store";
 
 // ============================================================================
 // Types
@@ -144,6 +154,42 @@ function TableRendererComponent({
   previewColumns,
 }: TableRendererProps) {
   // ========================================
+  // Refs & State
+  // ========================================
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Get updateComponentProperty from canvas store
+  const updateComponentProperty = useCanvasStore(
+    (state) => state.updateComponentProperty
+  );
+
+  // ========================================
+  // Effects
+  // ========================================
+
+  // Measure container width for column resize calculations
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const updateWidth = () => {
+      const rect = container.getBoundingClientRect();
+      setContainerWidth(rect.width - 16); // Account for padding
+    };
+
+    // Initial measurement
+    updateWidth();
+
+    // Observe resize
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(container);
+
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // ========================================
   // Event Handlers
   // ========================================
 
@@ -170,6 +216,39 @@ function TableRendererComponent({
       onContextMenu?.(e, node.id);
     },
     [onContextMenu, node.id]
+  );
+
+  /**
+   * Handle column width changes from TableColumnResizer
+   */
+  const handleColumnsChange = useCallback(
+    (newColumns: TableColumn[]) => {
+      updateComponentProperty(node.id, "columns", newColumns);
+    },
+    [node.id, updateComponentProperty]
+  );
+
+  /**
+   * Handle auto-size column (double-click on divider)
+   * Sets the column to a reasonable constant width based on content estimation
+   */
+  const handleAutoSizeColumn = useCallback(
+    (columnIndex: number) => {
+      const currentCols = parseColumnDefinitions(node.properties);
+      const newColumns = currentCols.map((col, idx) => {
+        if (idx === columnIndex) {
+          // Auto-size: convert to constant width with a reasonable default
+          // In a real implementation, this could measure cell content
+          return {
+            type: "constant" as const,
+            value: 100, // Default auto-size width in points
+          };
+        }
+        return { ...col };
+      });
+      updateComponentProperty(node.id, "columns", newColumns);
+    },
+    [node.id, node.properties, updateComponentProperty]
   );
 
   // ========================================
@@ -206,9 +285,10 @@ function TableRendererComponent({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         RENDERER_CONTAINER_STYLES.container,
-        "rounded-sm border",
+        "relative rounded-sm border",
         COMPONENT_CATEGORY_COLORS.container,
         isSelected && RENDERER_CONTAINER_STYLES.selected,
         isPrimarySelection && RENDERER_CONTAINER_STYLES.primarySelected,
@@ -313,6 +393,19 @@ function TableRendererComponent({
         <div className="absolute right-1 bottom-1 rounded bg-blue-500/90 px-1 py-0.5 text-[9px] text-white">
           {node.children!.length} cell{node.children!.length !== 1 ? "s" : ""}
         </div>
+      )}
+
+      {/* Column width adjusters - shown when selected and has multiple columns */}
+      {isSelected && columns.length >= 2 && containerWidth > 0 && (
+        <TableColumnResizer
+          componentId={node.id}
+          columns={columns}
+          totalWidth={containerWidth}
+          enabled={isPrimarySelection}
+          minColumnWidth={20}
+          onColumnsChange={handleColumnsChange}
+          onAutoSizeColumn={handleAutoSizeColumn}
+        />
       )}
     </div>
   );

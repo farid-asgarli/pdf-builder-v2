@@ -183,7 +183,7 @@ export default function TemplatesPage() {
             </Link>
           </Button>
           <Button asChild>
-            <Link href="/builder/new">
+            <Link href="/templates/new">
               <Plus className="mr-2 h-4 w-4" />
               New Template
             </Link>
@@ -206,7 +206,7 @@ export default function TemplatesPage() {
                 </Link>
               </Button>
               <Button asChild>
-                <Link href="/builder/new">
+                <Link href="/templates/new">
                   <Plus className="mr-2 h-4 w-4" />
                   Create Template
                 </Link>

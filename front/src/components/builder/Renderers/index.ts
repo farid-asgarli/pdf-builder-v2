@@ -48,12 +48,33 @@ export { RowRenderer, type RowRendererProps } from "./RowRenderer";
 import "./TableRenderer"; // Self-registers on import
 export { TableRenderer, type TableRendererProps } from "./TableRenderer";
 
+import "./LayersRenderer"; // Self-registers on import
+export { LayersRenderer, type LayersRendererProps } from "./LayersRenderer";
+
+import "./DecorationRenderer"; // Self-registers on import
+export {
+  DecorationRenderer,
+  type DecorationRendererProps,
+} from "./DecorationRenderer";
+
 // Content Components
 import "./TextRenderer"; // Self-registers on import
 export { TextRenderer, type TextRendererProps } from "./TextRenderer";
 
 import "./ImageRenderer"; // Self-registers on import
 export { ImageRenderer, type ImageRendererProps } from "./ImageRenderer";
+
+import "./LineRenderer"; // Self-registers on import
+export { LineRenderer, type LineRendererProps } from "./LineRenderer";
+
+import "./HyperlinkRenderer"; // Self-registers on import
+export {
+  HyperlinkRenderer,
+  type HyperlinkRendererProps,
+} from "./HyperlinkRenderer";
+
+import "./ListRenderer"; // Self-registers on import
+export { ListRenderer, type ListRendererProps } from "./ListRenderer";
 
 // Styling Components
 import "./PaddingRenderer"; // Self-registers on import
@@ -67,3 +88,39 @@ export {
   BackgroundRenderer,
   type BackgroundRendererProps,
 } from "./BackgroundRenderer";
+
+import "./RoundedCornersRenderer"; // Self-registers on import
+export {
+  RoundedCornersRenderer,
+  type RoundedCornersRendererProps,
+} from "./RoundedCornersRenderer";
+
+// Content Components - Tier 3
+import "./QRCodeRenderer"; // Self-registers on import
+export { QRCodeRenderer, type QRCodeRendererProps } from "./QRCodeRenderer";
+
+import "./BarcodeRenderer"; // Self-registers on import
+export { BarcodeRenderer, type BarcodeRendererProps } from "./BarcodeRenderer";
+
+// Sizing Components
+import "./AlignmentRenderer"; // Self-registers on import
+export {
+  AlignmentRenderer,
+  type AlignmentRendererProps,
+} from "./AlignmentRenderer";
+
+// ============================================================================
+// Transformation Renderers - Import to trigger self-registration
+// ============================================================================
+
+import "./RotateRenderer"; // Self-registers on import
+export { RotateRenderer, type RotateRendererProps } from "./RotateRenderer";
+
+import "./ScaleRenderer"; // Self-registers on import
+export { ScaleRenderer, type ScaleRendererProps } from "./ScaleRenderer";
+
+import "./TranslateRenderer"; // Self-registers on import
+export {
+  TranslateRenderer,
+  type TranslateRendererProps,
+} from "./TranslateRenderer";

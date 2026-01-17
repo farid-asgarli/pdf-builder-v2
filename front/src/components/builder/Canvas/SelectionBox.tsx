@@ -17,10 +17,7 @@ import { memo, useMemo, useCallback, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import type { BoundingBox } from "@/types/canvas";
 import { useMultiResize, type ComponentBounds } from "@/hooks/useMultiResize";
-import {
-  useInteractionStore,
-  type ResizeHandle,
-} from "@/store/interaction-store";
+import { type ResizeHandle } from "@/store/interaction-store";
 import { type HandlePosition } from "./ResizeHandles";
 
 // ============================================================================

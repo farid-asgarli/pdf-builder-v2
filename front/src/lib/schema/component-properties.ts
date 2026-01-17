@@ -18,10 +18,12 @@ export const expressionPattern = /\{\{[^}]*\}\}/;
 /**
  * Hex color validation
  */
-export const hexColorSchema = z.string().regex(
-  /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8}|[A-Fa-f0-9]{3})$/,
-  "Must be a valid hex color (e.g., #333333)"
-);
+export const hexColorSchema = z
+  .string()
+  .regex(
+    /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8}|[A-Fa-f0-9]{3})$/,
+    "Must be a valid hex color (e.g., #333333)"
+  );
 
 /**
  * Size value in points
@@ -92,7 +94,17 @@ export const imagePropertiesSchema = z.object({
   source: z.string(),
   width: sizeValueSchema.optional(),
   height: sizeValueSchema.optional(),
-  fit: z.enum(["fill", "contain", "cover", "width", "height", "area", "unproportional"]).optional(),
+  fit: z
+    .enum([
+      "fill",
+      "contain",
+      "cover",
+      "width",
+      "height",
+      "area",
+      "unproportional",
+    ])
+    .optional(),
 });
 
 export const linePropertiesSchema = z.object({
@@ -111,7 +123,15 @@ export const hyperlinkPropertiesSchema = z.object({
 
 export const barcodePropertiesSchema = z.object({
   value: z.string(),
-  format: z.enum(["code128", "ean8", "ean13", "upca", "code39", "dataMatrix", "pdf417"]),
+  format: z.enum([
+    "code128",
+    "ean8",
+    "ean13",
+    "upca",
+    "code39",
+    "dataMatrix",
+    "pdf417",
+  ]),
 });
 
 export const qrcodePropertiesSchema = z.object({
@@ -147,7 +167,11 @@ export const backgroundPropertiesSchema = z.object({
 });
 
 export const roundedCornersPropertiesSchema = z.object({
-  radius: z.number().min(0).max(500),
+  all: z.number().min(0).max(500).optional(),
+  topLeft: z.number().min(0).max(500).optional(),
+  topRight: z.number().min(0).max(500).optional(),
+  bottomLeft: z.number().min(0).max(500).optional(),
+  bottomRight: z.number().min(0).max(500).optional(),
 });
 
 export const shadowPropertiesSchema = z.object({
@@ -179,6 +203,19 @@ export const sizeWithUnitPropertiesSchema = z.object({
 export const alignmentPropertiesSchema = z.object({
   horizontal: z.enum(["left", "center", "right", "start", "end"]).optional(),
   vertical: z.enum(["top", "middle", "bottom"]).optional(),
+  position: z
+    .enum([
+      "topLeft",
+      "topCenter",
+      "topRight",
+      "middleLeft",
+      "middleCenter",
+      "middleRight",
+      "bottomLeft",
+      "bottomCenter",
+      "bottomRight",
+    ])
+    .optional(),
 });
 
 export const aspectRatioPropertiesSchema = z.object({
@@ -228,10 +265,12 @@ export const sectionPropertiesSchema = z.object({
   name: z.string().min(1),
 });
 
-export const repeatPropertiesSchema = z.object({
-  // Repeat uses the LayoutNode's repeatFor, repeatAs, repeatIndex
-  // No additional properties needed
-}).optional();
+export const repeatPropertiesSchema = z
+  .object({
+    // Repeat uses the LayoutNode's repeatFor, repeatAs, repeatIndex
+    // No additional properties needed
+  })
+  .optional();
 
 export const showOncePropertiesSchema = z.object({}).optional();
 
@@ -326,7 +365,9 @@ import { ComponentType } from "@/types/component";
  * Map of component types to their property schemas
  * Complete registry covering all 53 component types
  */
-export const componentPropertySchemas: Partial<Record<ComponentType, z.ZodSchema>> = {
+export const componentPropertySchemas: Partial<
+  Record<ComponentType, z.ZodSchema>
+> = {
   // Container Components (7)
   [ComponentType.Column]: columnPropertiesSchema,
   [ComponentType.Row]: rowPropertiesSchema,
@@ -409,7 +450,7 @@ export function validateComponentProperties(
     // Components without specific schema validation pass through
     return { success: true, data: properties };
   }
-  
+
   const result = schema.safeParse(properties);
   if (result.success) {
     return { success: true, data: result.data };

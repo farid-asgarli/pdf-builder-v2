@@ -14,3 +14,6 @@ export type { SizingPropertiesProps } from "./SizingProperties";
 
 export { StylingProperties } from "./StylingProperties";
 export type { StylingPropertiesProps } from "./StylingProperties";
+
+export { LayersPanel } from "./LayersPanel";
+export type { LayersPanelProps } from "./LayersPanel";

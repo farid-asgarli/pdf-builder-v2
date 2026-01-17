@@ -254,11 +254,15 @@ const listMetadata: ComponentMetadata = {
   name: "List",
   category: "content", // List = 205 in backend (Content category)
   icon: "List",
-  description: "Ordered and unordered lists",
+  description: "Ordered and unordered lists with nesting support",
   defaultProperties: {
     listType: "unordered",
     spacing: 5,
     bulletCharacter: "•",
+    indentSize: 20,
+    startIndex: 1,
+    numberFormat: "decimal",
+    items: [],
   },
   propertySchema: [
     {
@@ -270,7 +274,17 @@ const listMetadata: ComponentMetadata = {
       options: [
         { label: "Unordered", value: "unordered" },
         { label: "Ordered", value: "ordered" },
+        { label: "None", value: "none" },
       ],
+    },
+    {
+      name: "items",
+      type: "array",
+      label: "List Items",
+      description:
+        "Array of list items with content and optional nested children",
+      defaultValue: [],
+      required: true,
     },
     spacingProperty,
     {
@@ -281,11 +295,58 @@ const listMetadata: ComponentMetadata = {
       defaultValue: "•",
       supportsExpression: false,
     },
+    {
+      name: "indentSize",
+      type: "number",
+      label: "Indent Size",
+      description: "Indentation per nesting level in points",
+      defaultValue: 20,
+      min: 0,
+      max: 100,
+    },
+    {
+      name: "startIndex",
+      type: "number",
+      label: "Start Index",
+      description: "Starting number for ordered lists",
+      defaultValue: 1,
+      min: 1,
+    },
+    {
+      name: "numberFormat",
+      type: "enum",
+      label: "Number Format",
+      description: "Format for ordered list numbering",
+      defaultValue: "decimal",
+      options: [
+        { label: "1, 2, 3...", value: "decimal" },
+        { label: "A, B, C...", value: "alpha" },
+        { label: "a, b, c...", value: "alpha-lower" },
+        { label: "I, II, III...", value: "roman" },
+        { label: "i, ii, iii...", value: "roman-lower" },
+      ],
+    },
+    {
+      name: "bulletColor",
+      type: "color",
+      label: "Bullet Color",
+      description: "Color of bullets or numbers",
+      defaultValue: "#333333",
+    },
+    {
+      name: "bulletSize",
+      type: "number",
+      label: "Bullet Size",
+      description: "Size of bullet character in points",
+      defaultValue: 12,
+      min: 6,
+      max: 72,
+    },
   ],
   allowsChildren: true,
   isWrapper: false,
   priorityTier: 3,
-  questPdfApi: "Custom implementation",
+  questPdfApi: "Custom implementation using Column and Row elements",
 };
 
 // ============================================================================
