@@ -669,6 +669,7 @@ export const FooterEditor = memo(function FooterEditor({
             {/* Canvas Area */}
             <div className="flex-1 p-2">
               <DndContext
+                id="footer-editor-dnd"
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}

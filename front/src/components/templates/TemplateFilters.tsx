@@ -50,7 +50,10 @@ export function TemplateFilters({
   // Parse selected tags from comma-separated string
   const selectedTags = useMemo(() => {
     if (!filters.tags) return [];
-    return filters.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    return filters.tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
   }, [filters.tags]);
 
   // Check if any filters are active
@@ -80,8 +83,7 @@ export function TemplateFilters({
   const handleStatusChange = (value: string) => {
     onFiltersChange({
       ...filters,
-      isActive:
-        value === "all" ? undefined : value === "active" ? true : false,
+      isActive: value === "all" ? undefined : value === "active" ? true : false,
       page: 1,
     });
   };
@@ -116,7 +118,7 @@ export function TemplateFilters({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         {/* Search input */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
             type="search"
             placeholder="Search templates..."
@@ -131,13 +133,13 @@ export function TemplateFilters({
           value={filters.category || "all"}
           onValueChange={handleCategoryChange}
         >
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-45">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
             {categoriesLoading ? (
-              <SelectItem value="" disabled>
+              <SelectItem value="__loading__" disabled>
                 Loading...
               </SelectItem>
             ) : categories.length > 0 ? (
@@ -147,7 +149,7 @@ export function TemplateFilters({
                 </SelectItem>
               ))
             ) : (
-              <SelectItem value="" disabled>
+              <SelectItem value="__empty__" disabled>
                 No categories
               </SelectItem>
             )}
@@ -165,7 +167,7 @@ export function TemplateFilters({
           }
           onValueChange={handleStatusChange}
         >
-          <SelectTrigger className="w-full sm:w-[140px]">
+          <SelectTrigger className="w-full sm:w-35">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -179,16 +181,16 @@ export function TemplateFilters({
       {/* Tags filter */}
       {tags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Tags:</span>
+          <Filter className="text-muted-foreground h-4 w-4" />
+          <span className="text-muted-foreground text-sm">Tags:</span>
           {tagsLoading ? (
-            <span className="text-sm text-muted-foreground">Loading...</span>
+            <span className="text-muted-foreground text-sm">Loading...</span>
           ) : (
             tags.map((tag) => (
               <Badge
                 key={tag}
                 variant={selectedTags.includes(tag) ? "default" : "outline"}
-                className="cursor-pointer transition-colors hover:bg-primary/80"
+                className="hover:bg-primary/80 cursor-pointer transition-colors"
                 onClick={() => handleTagToggle(tag)}
               >
                 {tag}
@@ -203,7 +205,7 @@ export function TemplateFilters({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {totalCount !== undefined && (
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 {totalCount} {totalCount === 1 ? "template" : "templates"} found
               </span>
             )}

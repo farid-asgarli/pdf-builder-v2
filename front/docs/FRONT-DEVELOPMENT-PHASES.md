@@ -1895,7 +1895,7 @@ export const useAlignment = () => {
 
 ```bash
 # .env.local
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5273
 NEXT_PUBLIC_API_TIMEOUT=30000
 NEXT_PUBLIC_MAX_FILE_SIZE=10485760
 NEXT_PUBLIC_ALLOWED_IMAGE_FORMATS=png,jpg,jpeg,webp,svg

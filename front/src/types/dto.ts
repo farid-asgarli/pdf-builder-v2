@@ -406,6 +406,48 @@ export interface PageSettingsDto {
   marginLeft?: number;
 
   /**
+   * Fixed header height in points.
+   * @minimum 0
+   * @maximum 500
+   */
+  headerHeight?: number;
+
+  /**
+   * Minimum header height in points.
+   * @minimum 0
+   * @maximum 500
+   */
+  minHeaderHeight?: number;
+
+  /**
+   * Maximum header height in points.
+   * @minimum 0
+   * @maximum 500
+   */
+  maxHeaderHeight?: number;
+
+  /**
+   * Fixed footer height in points.
+   * @minimum 0
+   * @maximum 500
+   */
+  footerHeight?: number;
+
+  /**
+   * Minimum footer height in points.
+   * @minimum 0
+   * @maximum 500
+   */
+  minFooterHeight?: number;
+
+  /**
+   * Maximum footer height in points.
+   * @minimum 0
+   * @maximum 500
+   */
+  maxFooterHeight?: number;
+
+  /**
    * Background color for all pages in hex format.
    */
   backgroundColor?: string;
@@ -436,6 +478,73 @@ export interface PageSettingsDto {
    * Content direction ("LTR" or "RTL").
    */
   contentDirection?: ContentDirection;
+}
+
+// ============================================================================
+// TEMPLATE LAYOUT DTO
+// Matches: PDFBuilder.Contracts.DTOs.TemplateLayoutDto
+// ============================================================================
+
+/**
+ * Data transfer object representing the complete layout structure for a PDF template.
+ * Contains separate layout trees for header, content, and footer sections,
+ * along with page configuration settings.
+ *
+ * The TemplateLayoutDto follows QuestPDF's page structure with five main slots:
+ * - Header: Rendered at the top of every page (does not paginate)
+ * - Content: Primary content area between header and footer (supports pagination)
+ * - Footer: Rendered at the bottom of every page (does not paginate)
+ * - Background: Behind all content, spans entire page
+ * - Foreground: In front of all content (watermarks)
+ */
+export interface TemplateLayoutDto {
+  /**
+   * Page settings for the document.
+   * Defines page size, orientation, margins, and header/footer heights.
+   * If not specified, defaults to A4 portrait with standard margins.
+   */
+  pageSettings?: PageSettingsDto;
+
+  /**
+   * Header layout tree.
+   * The header is rendered at the top of every page and does not paginate.
+   * Ideal for company logos, document titles, report headers with date/time.
+   * Set to null if no header is needed.
+   */
+  header?: LayoutNodeDto | null;
+
+  /**
+   * Main content layout tree.
+   * This is the primary document content that flows across pages.
+   * When content exceeds available space on a page, it automatically
+   * flows to subsequent pages.
+   */
+  content: LayoutNodeDto;
+
+  /**
+   * Footer layout tree.
+   * The footer is rendered at the bottom of every page and does not paginate.
+   * Ideal for page numbers, copyright notices, document identifiers.
+   * For page numbers, use expressions like {{ currentPage }} and {{ totalPages }}.
+   * Set to null if no footer is needed.
+   */
+  footer?: LayoutNodeDto | null;
+
+  /**
+   * Background layout tree (optional).
+   * The background is rendered behind all other content and spans the entire page.
+   * Not affected by page margins. Useful for background images, patterns,
+   * or decorative borders.
+   */
+  background?: LayoutNodeDto | null;
+
+  /**
+   * Foreground layout tree (optional).
+   * The foreground is rendered in front of all other content and spans the entire page.
+   * Not affected by page margins. Useful for watermarks (e.g., "DRAFT", "CONFIDENTIAL"),
+   * overlay graphics, or security markings.
+   */
+  foreground?: LayoutNodeDto | null;
 }
 
 // ============================================================================

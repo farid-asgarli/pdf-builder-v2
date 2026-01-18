@@ -50,7 +50,7 @@ dotnet run --project src/PDFBuilder.API
 
 The API will be available at:
 
-- HTTP: `http://localhost:5000`
+- HTTP: `http://localhost:5273`
 - HTTPS: `https://localhost:5001`
 - Swagger UI: `https://localhost:5001/`
 

@@ -47,6 +47,88 @@ export interface MutationResult {
 }
 
 /**
+ * Standard page sizes supported by the PDF builder
+ */
+export type PageSize =
+  | "A4"
+  | "A3"
+  | "A5"
+  | "Letter"
+  | "Legal"
+  | "Tabloid"
+  | "Custom";
+
+/**
+ * Page orientation options
+ */
+export type PageOrientation = "portrait" | "landscape";
+
+/**
+ * Page margins configuration
+ */
+export interface PageMargins {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * Page settings for the PDF document
+ * Controls page size, orientation, margins, and header/footer dimensions
+ */
+export interface PageSettings {
+  /** Page size preset */
+  size: PageSize;
+  /** Page orientation */
+  orientation: PageOrientation;
+  /** Page margins in points */
+  margins: PageMargins;
+  /** Maximum header height in points (optional) */
+  headerHeight?: number;
+  /** Maximum footer height in points (optional) */
+  footerHeight?: number;
+  /** Custom page width in points (only used when size is "Custom") */
+  customWidth?: number;
+  /** Custom page height in points (only used when size is "Custom") */
+  customHeight?: number;
+  /** Background color for all pages */
+  backgroundColor?: string;
+}
+
+/**
+ * Default page settings for A4 Portrait
+ */
+export const DEFAULT_PAGE_SETTINGS: PageSettings = {
+  size: "A4",
+  orientation: "portrait",
+  margins: {
+    top: 36,
+    right: 36,
+    bottom: 36,
+    left: 36,
+  },
+  headerHeight: 60,
+  footerHeight: 40,
+};
+
+/**
+ * Complete template structure for import/export
+ * Contains all layout trees (header, content, footer, background, foreground) and page settings
+ * Aligned with backend TemplateLayoutDto
+ */
+export interface TemplateStructure {
+  pageSettings: PageSettings;
+  header: LayoutNode | null;
+  content: LayoutNode | null;
+  footer: LayoutNode | null;
+  /** Background layout tree - rendered behind all content, spans entire page */
+  background?: LayoutNode | null;
+  /** Foreground layout tree - rendered in front of all content (watermarks, overlays) */
+  foreground?: LayoutNode | null;
+}
+
+/**
  * Canvas store state and actions
  */
 interface CanvasState {
@@ -59,6 +141,9 @@ interface CanvasState {
   // Current editing mode
   editingMode: EditingMode;
 
+  // Page settings
+  pageSettings: PageSettings;
+
   // Dirty flag for tracking unsaved changes
   isDirty: boolean;
 
@@ -70,11 +155,22 @@ interface CanvasState {
   getActiveTree: () => LayoutNode | null;
   setActiveTree: (tree: LayoutNode | null) => void;
 
+  // Page Settings Actions
+  updatePageSettings: (settings: Partial<PageSettings>) => void;
+  setPageSize: (size: PageSize) => void;
+  setPageOrientation: (orientation: PageOrientation) => void;
+  setPageMargins: (margins: Partial<PageMargins>) => void;
+  setHeaderHeight: (height: number | undefined) => void;
+  setFooterHeight: (height: number | undefined) => void;
+  getPageSettings: () => PageSettings;
+
   // Actions - CRUD Operations
   setRoot: (root: LayoutNode | null) => void;
   setHeader: (header: LayoutNode | null) => void;
   setContent: (content: LayoutNode | null) => void;
   setFooter: (footer: LayoutNode | null) => void;
+  updateHeader: (header: LayoutNode | null) => void;
+  updateFooter: (footer: LayoutNode | null) => void;
   addComponent: (
     parentId: string,
     component: LayoutNode,
@@ -128,8 +224,17 @@ interface CanvasState {
   clear: () => void;
   clearHeader: () => void;
   clearFooter: () => void;
-  loadFromJson: (json: LayoutNode) => void;
-  exportToJson: () => LayoutNode | null;
+  loadFromJson: (json: LayoutNode | TemplateStructure) => void;
+  loadFromTemplate: (template: TemplateStructure) => void;
+  /**
+   * Export the current template as JSON
+   * Returns the full template structure with pageSettings, header, content, and footer
+   */
+  exportToJson: () => TemplateStructure;
+  /**
+   * @deprecated Use exportToJson instead
+   */
+  exportToTemplate: () => TemplateStructure;
   markClean: () => void;
   markDirty: () => void;
 }
@@ -391,6 +496,61 @@ function findDuplicateIds(root: LayoutNode): string[] {
 }
 
 // ============================================================================
+// Context-Aware Tree Helpers
+// ============================================================================
+
+/**
+ * Get the current active tree based on editing mode
+ * This is used internally by the store for context-aware operations
+ */
+function getCurrentTree(state: {
+  editingMode: EditingMode;
+  header: LayoutNode | null;
+  content: LayoutNode | null;
+  footer: LayoutNode | null;
+  root: LayoutNode | null;
+}): LayoutNode | null {
+  switch (state.editingMode) {
+    case "header":
+      return state.header;
+    case "footer":
+      return state.footer;
+    case "content":
+    default:
+      return state.content ?? state.root;
+  }
+}
+
+/**
+ * Set the current active tree based on editing mode
+ * Returns the field name that was updated
+ */
+function setCurrentTree(
+  state: {
+    editingMode: EditingMode;
+    header: LayoutNode | null;
+    content: LayoutNode | null;
+    footer: LayoutNode | null;
+    root: LayoutNode | null;
+  },
+  tree: LayoutNode | null
+): void {
+  switch (state.editingMode) {
+    case "header":
+      state.header = tree;
+      break;
+    case "footer":
+      state.footer = tree;
+      break;
+    case "content":
+    default:
+      state.content = tree;
+      state.root = tree; // Keep root in sync for backward compatibility
+      break;
+  }
+}
+
+// ============================================================================
 // ID Generation
 // ============================================================================
 
@@ -466,6 +626,7 @@ export const useCanvasStore = create<CanvasState>()(
       content: null,
       footer: null,
       editingMode: "content" as EditingMode,
+      pageSettings: { ...DEFAULT_PAGE_SETTINGS },
       isDirty: false,
       lastModified: null,
 
@@ -514,6 +675,71 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       // ========================================================================
+      // Page Settings Operations
+      // ========================================================================
+
+      updatePageSettings: (settings: Partial<PageSettings>) => {
+        set((state) => {
+          state.pageSettings = {
+            ...state.pageSettings,
+            ...settings,
+            margins: settings.margins
+              ? { ...state.pageSettings.margins, ...settings.margins }
+              : state.pageSettings.margins,
+          };
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      setPageSize: (size: PageSize) => {
+        set((state) => {
+          state.pageSettings.size = size;
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      setPageOrientation: (orientation: PageOrientation) => {
+        set((state) => {
+          state.pageSettings.orientation = orientation;
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      setPageMargins: (margins: Partial<PageMargins>) => {
+        set((state) => {
+          state.pageSettings.margins = {
+            ...state.pageSettings.margins,
+            ...margins,
+          };
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      setHeaderHeight: (height: number | undefined) => {
+        set((state) => {
+          state.pageSettings.headerHeight = height;
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      setFooterHeight: (height: number | undefined) => {
+        set((state) => {
+          state.pageSettings.footerHeight = height;
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      getPageSettings: () => {
+        return get().pageSettings;
+      },
+
+      // ========================================================================
       // CRUD Operations
       // ========================================================================
 
@@ -551,12 +777,29 @@ export const useCanvasStore = create<CanvasState>()(
         });
       },
 
+      updateHeader: (header) => {
+        set((state) => {
+          state.header = header;
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      updateFooter: (footer) => {
+        set((state) => {
+          state.footer = footer;
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
       addComponent: (parentId, component, index) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
         // Validation: Check if component can be added to parent
-        if (state.root) {
-          const parent = findNode(state.root, parentId);
+        if (currentTree) {
+          const parent = findNode(currentTree, parentId);
           if (!parent) {
             return { success: false, error: `Parent not found: ${parentId}` };
           }
@@ -566,8 +809,8 @@ export const useCanvasStore = create<CanvasState>()(
             return { success: false, error: validation.error };
           }
 
-          // Check for duplicate ID
-          if (findNode(state.root, component.id)) {
+          // Check for duplicate ID in the current tree
+          if (findNode(currentTree, component.id)) {
             return {
               success: false,
               error: `Duplicate ID: ${component.id}. Each component must have a unique ID.`,
@@ -576,15 +819,17 @@ export const useCanvasStore = create<CanvasState>()(
         }
 
         set((state) => {
-          if (!state.root) {
-            // If no root, set the component as root
-            state.root = component;
+          const tree = getCurrentTree(state);
+
+          if (!tree) {
+            // If no tree for current mode, set the component as root
+            setCurrentTree(state, component);
             state.isDirty = true;
             state.lastModified = Date.now();
             return;
           }
 
-          const parent = findNode(state.root, parentId);
+          const parent = findNode(tree, parentId);
           if (parent) {
             // For container components, use children array
             if (isContainerComponent(parent.type)) {
@@ -614,12 +859,16 @@ export const useCanvasStore = create<CanvasState>()(
 
       addComponentAsChild: (parentId, component) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
-        if (!state.root) {
-          return { success: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            success: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
-        const parent = findNode(state.root, parentId);
+        const parent = findNode(currentTree, parentId);
         if (!parent) {
           return { success: false, error: `Parent not found: ${parentId}` };
         }
@@ -638,8 +887,8 @@ export const useCanvasStore = create<CanvasState>()(
           };
         }
 
-        // Check for duplicate ID
-        if (findNode(state.root, component.id)) {
+        // Check for duplicate ID in current tree
+        if (findNode(currentTree, component.id)) {
           return {
             success: false,
             error: `Duplicate ID: ${component.id}. Each component must have a unique ID.`,
@@ -647,7 +896,10 @@ export const useCanvasStore = create<CanvasState>()(
         }
 
         set((state) => {
-          const parent = findNode(state.root!, parentId);
+          const tree = getCurrentTree(state);
+          if (!tree) return;
+
+          const parent = findNode(tree, parentId);
           if (parent) {
             parent.child = component;
             state.isDirty = true;
@@ -660,19 +912,23 @@ export const useCanvasStore = create<CanvasState>()(
 
       updateComponent: (id, updates) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
-        if (!state.root) {
-          return { success: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            success: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
-        const node = findNode(state.root, id);
+        const node = findNode(currentTree, id);
         if (!node) {
           return { success: false, error: `Component not found: ${id}` };
         }
 
         // Prevent updating the ID to a duplicate
         if (updates.id && updates.id !== id) {
-          if (findNode(state.root, updates.id)) {
+          if (findNode(currentTree, updates.id)) {
             return {
               success: false,
               error: `Cannot update ID: ${updates.id} already exists`,
@@ -681,7 +937,10 @@ export const useCanvasStore = create<CanvasState>()(
         }
 
         set((state) => {
-          const node = findNode(state.root!, id);
+          const tree = getCurrentTree(state);
+          if (!tree) return;
+
+          const node = findNode(tree, id);
           if (node) {
             // Don't allow changing the type of a node
             const { type: _type, ...safeUpdates } = updates;
@@ -696,18 +955,25 @@ export const useCanvasStore = create<CanvasState>()(
 
       updateComponentProperty: (id, property, value) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
-        if (!state.root) {
-          return { success: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            success: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
-        const node = findNode(state.root, id);
+        const node = findNode(currentTree, id);
         if (!node) {
           return { success: false, error: `Component not found: ${id}` };
         }
 
         set((state) => {
-          const node = findNode(state.root!, id);
+          const tree = getCurrentTree(state);
+          if (!tree) return;
+
+          const node = findNode(tree, id);
           if (node) {
             if (!node.properties) {
               node.properties = {};
@@ -723,18 +989,25 @@ export const useCanvasStore = create<CanvasState>()(
 
       updateComponentProperties: (id, properties) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
-        if (!state.root) {
-          return { success: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            success: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
-        const node = findNode(state.root, id);
+        const node = findNode(currentTree, id);
         if (!node) {
           return { success: false, error: `Component not found: ${id}` };
         }
 
         set((state) => {
-          const node = findNode(state.root!, id);
+          const tree = getCurrentTree(state);
+          if (!tree) return;
+
+          const node = findNode(tree, id);
           if (node) {
             node.properties = { ...node.properties, ...properties };
             state.isDirty = true;
@@ -747,27 +1020,35 @@ export const useCanvasStore = create<CanvasState>()(
 
       deleteComponent: (id) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
-        if (!state.root) {
-          return { success: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            success: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
-        if (state.root.id === id) {
+        // Check if deleting the root of current tree
+        if (currentTree.id === id) {
           set((state) => {
-            state.root = null;
+            setCurrentTree(state, null);
             state.isDirty = true;
             state.lastModified = Date.now();
           });
           return { success: true, nodeId: id };
         }
 
-        const parent = findParent(state.root, id);
+        const parent = findParent(currentTree, id);
         if (!parent) {
           return { success: false, error: `Component not found: ${id}` };
         }
 
         set((state) => {
-          const parent = findParent(state.root!, id);
+          const tree = getCurrentTree(state);
+          if (!tree) return;
+
+          const parent = findParent(tree, id);
           if (parent) {
             // Handle children array
             if (parent.children) {
@@ -789,9 +1070,13 @@ export const useCanvasStore = create<CanvasState>()(
 
       moveComponent: (id, newParentId, index) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
-        if (!state.root) {
-          return { success: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            success: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
         // Validate the move
@@ -800,8 +1085,8 @@ export const useCanvasStore = create<CanvasState>()(
           return { success: false, error: validation.error };
         }
 
-        const node = findNode(state.root, id);
-        const newParent = findNode(state.root, newParentId);
+        const node = findNode(currentTree, id);
+        const newParent = findNode(currentTree, newParentId);
 
         if (!node) {
           return { success: false, error: `Component not found: ${id}` };
@@ -815,9 +1100,12 @@ export const useCanvasStore = create<CanvasState>()(
         }
 
         set((state) => {
-          const node = findNode(state.root!, id);
-          const currentParent = findParent(state.root!, id);
-          const newParent = findNode(state.root!, newParentId);
+          const tree = getCurrentTree(state);
+          if (!tree) return;
+
+          const node = findNode(tree, id);
+          const currentParent = findParent(tree, id);
+          const newParent = findNode(tree, newParentId);
 
           if (!node || !newParent) return;
 
@@ -859,17 +1147,21 @@ export const useCanvasStore = create<CanvasState>()(
 
       duplicateComponent: (id) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
-        if (!state.root) {
-          return { success: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            success: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
-        const node = findNode(state.root, id);
+        const node = findNode(currentTree, id);
         if (!node) {
           return { success: false, error: `Component not found: ${id}` };
         }
 
-        const parent = findParent(state.root, id);
+        const parent = findParent(currentTree, id);
         if (!parent) {
           // Can't duplicate root
           return { success: false, error: "Cannot duplicate root component" };
@@ -893,22 +1185,26 @@ export const useCanvasStore = create<CanvasState>()(
 
       reorderComponent: (id, newIndex) => {
         const state = get();
+        const currentTree = getCurrentTree(state);
 
-        if (!state.root) {
-          return { success: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            success: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
         // Can't reorder root
-        if (state.root.id === id) {
+        if (currentTree.id === id) {
           return { success: false, error: "Cannot reorder root component" };
         }
 
-        const node = findNode(state.root, id);
+        const node = findNode(currentTree, id);
         if (!node) {
           return { success: false, error: `Component not found: ${id}` };
         }
 
-        const parent = findParent(state.root, id);
+        const parent = findParent(currentTree, id);
         if (!parent) {
           return { success: false, error: "Parent not found" };
         }
@@ -937,7 +1233,10 @@ export const useCanvasStore = create<CanvasState>()(
         }
 
         set((state) => {
-          const parent = findParent(state.root!, id);
+          const tree = getCurrentTree(state);
+          if (!tree) return;
+
+          const parent = findParent(tree, id);
           if (parent && parent.children) {
             // Remove from current position
             const [removed] = parent.children.splice(currentIndex, 1);
@@ -952,19 +1251,25 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       // ========================================================================
-      // Tree Traversal Utilities
+      // Tree Traversal Utilities (Context-Aware)
+      // These utilities operate on the current active tree based on editingMode
       // ========================================================================
 
       getComponent: (id) => {
-        return findNode(get().root, id);
+        const currentTree = getCurrentTree(get());
+        return currentTree ? findNode(currentTree, id) : null;
       },
 
       getParent: (id) => {
-        return findParent(get().root, id);
+        const currentTree = getCurrentTree(get());
+        return currentTree ? findParent(currentTree, id) : null;
       },
 
       getChildren: (parentId) => {
-        const parent = findNode(get().root, parentId);
+        const currentTree = getCurrentTree(get());
+        if (!currentTree) return [];
+
+        const parent = findNode(currentTree, parentId);
         if (!parent) return [];
 
         // Return both children array and child
@@ -979,59 +1284,62 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       getPath: (id) => {
-        return findPath(get().root, id);
+        const currentTree = getCurrentTree(get());
+        return currentTree ? findPath(currentTree, id) : null;
       },
 
       getAncestors: (id) => {
-        const root = get().root;
-        if (!root) return [];
-        return getAncestorIds(root, id);
+        const currentTree = getCurrentTree(get());
+        if (!currentTree) return [];
+        return getAncestorIds(currentTree, id);
       },
 
       getDescendants: (id) => {
-        const node = findNode(get().root, id);
+        const currentTree = getCurrentTree(get());
+        if (!currentTree) return [];
+        const node = findNode(currentTree, id);
         if (!node) return [];
         return getDescendantIds(node);
       },
 
       getAllNodeIds: () => {
-        const root = get().root;
-        if (!root) return [];
-        return collectAllIds(root);
+        const currentTree = getCurrentTree(get());
+        if (!currentTree) return [];
+        return collectAllIds(currentTree);
       },
 
       getNodeCount: () => {
-        const root = get().root;
-        if (!root) return 0;
-        return countNodes(root);
+        const currentTree = getCurrentTree(get());
+        if (!currentTree) return 0;
+        return countNodes(currentTree);
       },
 
       getTreeDepth: () => {
-        const root = get().root;
-        if (!root) return 0;
-        return getMaxDepth(root);
+        const currentTree = getCurrentTree(get());
+        if (!currentTree) return 0;
+        return getMaxDepth(currentTree);
       },
 
       traverse: (callback) => {
-        const root = get().root;
-        if (root) {
-          traverseTree(root, callback);
+        const currentTree = getCurrentTree(get());
+        if (currentTree) {
+          traverseTree(currentTree, callback);
         }
       },
 
       // ========================================================================
-      // Validation Utilities
+      // Validation Utilities (Context-Aware)
       // ========================================================================
 
       canAddChild: (parentId) => {
-        const root = get().root;
+        const currentTree = getCurrentTree(get());
 
-        if (!root) {
-          // If no root, any component can be added
+        if (!currentTree) {
+          // If no tree in current mode, any component can be added
           return { valid: true };
         }
 
-        const parent = findNode(root, parentId);
+        const parent = findNode(currentTree, parentId);
         if (!parent) {
           return { valid: false, error: `Parent not found: ${parentId}` };
         }
@@ -1067,23 +1375,26 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       canMove: (nodeId, newParentId) => {
-        const root = get().root;
+        const currentTree = getCurrentTree(get());
 
-        if (!root) {
-          return { valid: false, error: "No root node exists" };
+        if (!currentTree) {
+          return {
+            valid: false,
+            error: "No root node exists in current editing mode",
+          };
         }
 
         // Cannot move root
-        if (root.id === nodeId) {
+        if (currentTree.id === nodeId) {
           return { valid: false, error: "Cannot move the root component" };
         }
 
-        const node = findNode(root, nodeId);
+        const node = findNode(currentTree, nodeId);
         if (!node) {
           return { valid: false, error: `Component not found: ${nodeId}` };
         }
 
-        const newParent = findNode(root, newParentId);
+        const newParent = findNode(currentTree, newParentId);
         if (!newParent) {
           return {
             valid: false,
@@ -1092,7 +1403,7 @@ export const useCanvasStore = create<CanvasState>()(
         }
 
         // Check for cycle
-        if (wouldCreateCycle(root, nodeId, newParentId)) {
+        if (wouldCreateCycle(currentTree, nodeId, newParentId)) {
           return {
             valid: false,
             error: "Cannot move a component into itself or its descendants",
@@ -1119,14 +1430,14 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       validateTree: () => {
-        const root = get().root;
+        const currentTree = getCurrentTree(get());
 
-        if (!root) {
+        if (!currentTree) {
           return { valid: true }; // Empty tree is valid
         }
 
         // Check for duplicate IDs
-        const duplicates = findDuplicateIds(root);
+        const duplicates = findDuplicateIds(currentTree);
         if (duplicates.length > 0) {
           return {
             valid: false,
@@ -1137,7 +1448,7 @@ export const useCanvasStore = create<CanvasState>()(
         // Check structure rules
         let structureError: string | null = null;
 
-        traverseTree(root, (node) => {
+        traverseTree(currentTree, (node) => {
           // Leaf components should not have children
           if (isLeafComponent(node.type)) {
             if ((node.children && node.children.length > 0) || node.child) {
@@ -1165,7 +1476,8 @@ export const useCanvasStore = create<CanvasState>()(
       },
 
       hasNode: (id) => {
-        return findNode(get().root, id) !== null;
+        const currentTree = getCurrentTree(get());
+        return currentTree ? findNode(currentTree, id) !== null : false;
       },
 
       // ========================================================================
@@ -1179,6 +1491,7 @@ export const useCanvasStore = create<CanvasState>()(
           state.content = null;
           state.footer = null;
           state.editingMode = "content";
+          state.pageSettings = { ...DEFAULT_PAGE_SETTINGS };
           state.isDirty = false;
           state.lastModified = null;
         });
@@ -1202,26 +1515,102 @@ export const useCanvasStore = create<CanvasState>()(
 
       loadFromJson: (json) => {
         // Validate the JSON structure before loading
-        // This is a basic check - more comprehensive validation can be done
         if (!json || typeof json !== "object") {
           console.error("Invalid JSON structure");
           return;
         }
 
+        // Check if this is a TemplateStructure or a LayoutNode
+        const isTemplateStructure =
+          "pageSettings" in json ||
+          ("header" in json && "content" in json && "footer" in json);
+
+        if (isTemplateStructure) {
+          const template = json as TemplateStructure;
+          set((state) => {
+            state.pageSettings = template.pageSettings
+              ? { ...DEFAULT_PAGE_SETTINGS, ...template.pageSettings }
+              : { ...DEFAULT_PAGE_SETTINGS };
+            state.header = template.header ?? null;
+            state.content = template.content ?? null;
+            state.footer = template.footer ?? null;
+            state.root = template.content ?? null; // Keep root in sync
+            state.isDirty = false;
+            state.lastModified = Date.now();
+          });
+        } else {
+          // Treat as a single LayoutNode (backward compatibility)
+          const layoutNode = json as LayoutNode;
+          set((state) => {
+            state.root = layoutNode;
+            state.content = layoutNode; // Keep content in sync
+            state.isDirty = false;
+            state.lastModified = Date.now();
+          });
+        }
+      },
+
+      loadFromTemplate: (template: TemplateStructure) => {
+        // Validate the template structure
+        if (!template || typeof template !== "object") {
+          console.error("Invalid template structure");
+          return;
+        }
+
         set((state) => {
-          state.root = json;
-          state.content = json; // Keep content in sync
+          state.pageSettings = template.pageSettings
+            ? { ...DEFAULT_PAGE_SETTINGS, ...template.pageSettings }
+            : { ...DEFAULT_PAGE_SETTINGS };
+          state.header = template.header ?? null;
+          state.content = template.content ?? null;
+          state.footer = template.footer ?? null;
+          state.root = template.content ?? null; // Keep root in sync for backward compatibility
+          state.editingMode = "content"; // Reset to content mode
           state.isDirty = false;
           state.lastModified = Date.now();
         });
       },
 
-      exportToJson: () => {
-        const root = get().root;
-        if (!root) return null;
+      /**
+       * Export the current template as JSON
+       * Returns the full template structure with pageSettings, header, content, and footer
+       * Format:
+       * {
+       *   "pageSettings": { ... },
+       *   "header": { ... } | null,
+       *   "content": { ... } | null,
+       *   "footer": { ... } | null
+       * }
+       */
+      exportToJson: (): TemplateStructure => {
+        const state = get();
 
-        // Return a deep clone to prevent external mutations
-        return JSON.parse(JSON.stringify(root));
+        // Return a deep clone of the full template structure
+        return JSON.parse(
+          JSON.stringify({
+            pageSettings: state.pageSettings,
+            header: state.header,
+            content: state.content,
+            footer: state.footer,
+          })
+        );
+      },
+
+      /**
+       * @deprecated Use exportToJson instead
+       */
+      exportToTemplate: (): TemplateStructure => {
+        const state = get();
+
+        // Return a deep clone of the full template structure
+        return JSON.parse(
+          JSON.stringify({
+            pageSettings: state.pageSettings,
+            header: state.header,
+            content: state.content,
+            footer: state.footer,
+          })
+        );
       },
 
       markClean: () => {
@@ -1282,7 +1671,101 @@ export const useCanvasLastModified = () =>
   useCanvasStore((state) => state.lastModified);
 
 /**
- * Get a specific component by ID (with shallow comparison)
+ * Subscribe to page settings changes only
+ */
+export const usePageSettings = () =>
+  useCanvasStore((state) => state.pageSettings);
+
+/**
+ * Subscribe to page size changes only
+ */
+export const usePageSize = () =>
+  useCanvasStore((state) => state.pageSettings.size);
+
+/**
+ * Subscribe to page orientation changes only
+ */
+export const usePageOrientation = () =>
+  useCanvasStore((state) => state.pageSettings.orientation);
+
+/**
+ * Subscribe to page margins changes only
+ */
+export const usePageMargins = () =>
+  useCanvasStore((state) => state.pageSettings.margins);
+
+/**
+ * Get the active tree based on current editing mode
+ * This hook is reactive to both editing mode and tree changes
+ */
+export const useActiveTree = () => {
+  const editingMode = useCanvasStore((state) => state.editingMode);
+  const header = useCanvasStore((state) => state.header);
+  const content = useCanvasStore((state) => state.content);
+  const footer = useCanvasStore((state) => state.footer);
+
+  switch (editingMode) {
+    case "header":
+      return header;
+    case "footer":
+      return footer;
+    case "content":
+    default:
+      return content;
+  }
+};
+
+/**
+ * Get a specific component by ID from the active tree (context-aware)
+ * Uses shallow comparison for performance
  */
 export const useComponent = (id: string) =>
-  useCanvasStore((state) => findNode(state.root, id));
+  useCanvasStore((state) => {
+    const tree = getCurrentTree(state);
+    return tree ? findNode(tree, id) : null;
+  });
+
+/**
+ * Get header height from page settings
+ */
+export const useHeaderHeight = () =>
+  useCanvasStore((state) => state.pageSettings.headerHeight);
+
+/**
+ * Get footer height from page settings
+ */
+export const useFooterHeight = () =>
+  useCanvasStore((state) => state.pageSettings.footerHeight);
+
+/**
+ * Check if currently editing header
+ */
+export const useIsEditingHeader = () =>
+  useCanvasStore((state) => state.editingMode === "header");
+
+/**
+ * Check if currently editing footer
+ */
+export const useIsEditingFooter = () =>
+  useCanvasStore((state) => state.editingMode === "footer");
+
+/**
+ * Check if currently editing content
+ */
+export const useIsEditingContent = () =>
+  useCanvasStore((state) => state.editingMode === "content");
+
+/**
+ * Get whether the current active tree has any nodes
+ */
+export const useHasActiveContent = () =>
+  useCanvasStore((state) => getCurrentTree(state) !== null);
+
+/**
+ * Get the root node ID of the active tree
+ */
+export const useActiveTreeRootId = () =>
+  useCanvasStore((state) => {
+    const tree = getCurrentTree(state);
+    return tree?.id ?? null;
+  });

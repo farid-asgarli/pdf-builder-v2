@@ -53,6 +53,13 @@ export {
 } from "./CanvasDropContext";
 export type { CanvasDropContextProps } from "./CanvasDropContext";
 
+// Empty canvas drop zone
+export {
+  EmptyCanvasDropZone,
+  default as EmptyCanvasDropZoneDefault,
+} from "./EmptyCanvasDropZone";
+export type { EmptyCanvasDropZoneProps } from "./EmptyCanvasDropZone";
+
 // Selection box components
 export {
   SelectionBox,

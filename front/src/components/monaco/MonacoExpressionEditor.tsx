@@ -25,6 +25,7 @@ import {
   registerExpressionHoverProvider,
   extractDataFieldsFromSampleData,
 } from "./ExpressionAutocomplete";
+import type { EditingMode } from "@/types";
 
 // ============================================================================
 // Types
@@ -96,7 +97,7 @@ export interface MonacoExpressionEditorProps {
    * Current editing mode - affects page variable autocomplete priority
    * Page variables like currentPage/totalPages are prioritized in header/footer mode
    */
-  editingMode?: "content" | "header" | "footer";
+  editingMode?: EditingMode;
   /** Whether to include page context variables in autocomplete (default: true) */
   includePageVariables?: boolean;
   /** Custom validation function */

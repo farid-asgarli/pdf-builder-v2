@@ -8,12 +8,8 @@ namespace PDFBuilder.Validation.Validators;
 /// <summary>
 /// FluentValidation validator for GeneratePdfRequest.
 /// Validates the complete PDF generation request including layout structure,
-/// data context, page settings, and generation options.
+/// data context, and generation options.
 /// </summary>
-/// <remarks>
-/// Supports both the new TemplateLayout structure (with header/footer/background/foreground)
-/// and the legacy flat structure (Layout + PageSettings) for backward compatibility.
-/// </remarks>
 public sealed class GeneratePdfRequestValidator : AbstractValidator<GeneratePdfRequest>
 {
     /// <summary>
@@ -36,27 +32,17 @@ public sealed class GeneratePdfRequestValidator : AbstractValidator<GeneratePdfR
     /// </summary>
     public GeneratePdfRequestValidator()
     {
-        // Validate that at least one layout structure is provided
+        // Validate that TemplateLayout is provided and has valid content
+        RuleFor(x => x.TemplateLayout).NotNull().WithMessage("TemplateLayout is required");
+
         RuleFor(x => x)
             .Must(x => x.HasValidLayout())
-            .WithMessage(
-                "Either 'TemplateLayout' with 'Content' or legacy 'Layout' must be provided"
-            );
+            .WithMessage("TemplateLayout must contain a valid 'Content' layout");
 
-        // Validate TemplateLayout (new structure with header/footer support)
+        // Validate TemplateLayout structure
         RuleFor(x => x.TemplateLayout)
             .SetValidator(new TemplateLayoutValidator()!)
             .When(x => x.TemplateLayout != null);
-
-        // Validate legacy Layout (for backward compatibility)
-        RuleFor(x => x.Layout)
-            .SetValidator(new LayoutNodeValidator()!)
-            .When(x => x.Layout != null && x.TemplateLayout == null);
-
-        // Also validate component properties for legacy Layout
-        RuleFor(x => x.Layout)
-            .SetValidator(new ComponentPropertyValidator()!)
-            .When(x => x.Layout != null && x.TemplateLayout == null);
 
         // Validate Data object structure
         RuleFor(x => x.Data)
@@ -88,11 +74,6 @@ public sealed class GeneratePdfRequestValidator : AbstractValidator<GeneratePdfR
                     }
                 }
             );
-
-        // Validate legacy PageSettings (when not using TemplateLayout)
-        RuleFor(x => x.PageSettings)
-            .SetValidator(new PageSettingsValidator()!)
-            .When(x => x.PageSettings != null && x.TemplateLayout == null);
 
         // Validate Filename
         RuleFor(x => x.Filename)

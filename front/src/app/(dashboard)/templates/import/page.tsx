@@ -121,7 +121,7 @@ export default function ImportTemplatePage() {
   };
 
   return (
-    <div className="container max-w-2xl py-8">
+    <div className="mx-auto max-w-2xl">
       {/* Back link */}
       <Button variant="ghost" size="sm" asChild className="mb-6">
         <Link href="/templates">

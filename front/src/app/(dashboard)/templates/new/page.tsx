@@ -102,7 +102,7 @@ export default function NewTemplatePage() {
   };
 
   return (
-    <div className="container max-w-2xl py-8">
+    <div className="mx-auto max-w-2xl">
       {/* Back link */}
       <Button variant="ghost" size="sm" asChild className="mb-6">
         <Link href="/templates">
@@ -194,15 +194,17 @@ export default function NewTemplatePage() {
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                value={category}
-                onValueChange={setCategory}
+                value={category || "__none__"}
+                onValueChange={(val) =>
+                  setCategory(val === "__none__" ? "" : val)
+                }
                 disabled={isCreating || isLoadingCategories}
               >
                 <SelectTrigger id="category">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
+                  <SelectItem value="__none__">No category</SelectItem>
                   {categories?.map((cat) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}

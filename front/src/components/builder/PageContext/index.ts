@@ -9,8 +9,17 @@ export {
 } from "./PageVariables";
 export {
   PageExpressionHelper,
+  ExpressionPreview,
+  ExpressionTester,
+  evaluatePageExpression,
+  getContextAwareVariables,
+  getPageVariableSuggestions,
+  usePageVariableAutocomplete,
   default as PageExpressionHelperDefault,
 } from "./PageExpressionHelper";
 
 export type { PageVariablesProps } from "./PageVariables";
-export type { PageExpressionHelperProps } from "./PageExpressionHelper";
+export type {
+  PageExpressionHelperProps,
+  ExpressionPreviewData,
+} from "./PageExpressionHelper";

@@ -314,6 +314,18 @@ export interface ComponentMetadata {
   priorityTier: PriorityTier;
   /** QuestPDF API reference */
   questPdfApi?: string;
+  /**
+   * Whether this component is compatible with header/footer mode
+   * Components like Table, PageBreak, complex layouts are NOT suitable
+   * Default: true (most components are compatible)
+   */
+  headerFooterCompatible?: boolean;
+  /**
+   * Whether this component is recommended for header/footer usage
+   * Components like Text, Image, Row, Column are recommended
+   * Default: false
+   */
+  recommendedForHeaderFooter?: boolean;
 }
 
 /**

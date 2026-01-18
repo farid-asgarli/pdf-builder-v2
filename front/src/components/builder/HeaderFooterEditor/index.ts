@@ -10,3 +10,10 @@ export type { HeaderEditorProps } from "./HeaderEditor";
 
 export { FooterEditor, default as FooterEditorDefault } from "./FooterEditor";
 export type { FooterEditorProps } from "./FooterEditor";
+
+export { PagePreview, default as PagePreviewDefault } from "./PagePreview";
+export type {
+  PagePreviewProps,
+  PageDimensions,
+  SectionBounds,
+} from "./PagePreview";

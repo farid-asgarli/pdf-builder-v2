@@ -40,7 +40,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 Create a `.env.local` file with the following variables:
 
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5273
 NEXT_PUBLIC_API_TIMEOUT=30000
 NEXT_PUBLIC_MAX_FILE_SIZE=10485760
 NEXT_PUBLIC_ALLOWED_IMAGE_FORMATS=png,jpg,jpeg,webp,svg
@@ -127,7 +127,7 @@ See [FRONT-DEVELOPMENT-PHASES.md](./docs/FRONT-DEVELOPMENT-PHASES.md) for detail
 
 ## Backend Integration
 
-The frontend expects a backend API running at `http://localhost:5000` with the following endpoints:
+The frontend expects a backend API running at `http://localhost:5273` with the following endpoints:
 
 - `POST /api/pdf/generate` - Generate PDF from layout
 - `POST /api/validation/validate` - Validate layout

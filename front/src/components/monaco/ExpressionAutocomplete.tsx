@@ -13,6 +13,7 @@
 import type { editor, languages, IDisposable, Position } from "monaco-editor";
 import type * as monacoEditor from "monaco-editor";
 import type { DataField } from "./MonacoExpressionEditor";
+import type { EditingMode } from "@/types";
 
 // ============================================================================
 // Types
@@ -34,7 +35,7 @@ export interface AutocompleteConfig {
   /** Whether to include page context variables (currentPage, totalPages, etc.) */
   includePageVariables?: boolean;
   /** Current editing mode - affects page variable suggestions */
-  editingMode?: "content" | "header" | "footer";
+  editingMode?: EditingMode;
   /** Trigger characters for autocomplete */
   triggerCharacters?: string[];
 }

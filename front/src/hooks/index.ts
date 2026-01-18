@@ -5,6 +5,15 @@
 // Toast Hook
 export { toast } from "sonner";
 
+// Canvas Hook (Composite State Management)
+export {
+  useCanvas,
+  useIsEditingMode,
+  useTreeForMode,
+  useHasHeaderFooter,
+  type UseCanvasReturn,
+} from "./useCanvas";
+
 // Component Selection Hook
 export {
   useComponentSelection,

@@ -5,8 +5,14 @@
  * For API-level types, see api.ts (TemplateDto, TemplateSummaryDto, etc.)
  */
 
-import type { LayoutNode, StyleProperties } from "./component";
-import type { LayoutNodeDto, PageSettingsDto } from "./dto";
+import type { SaveTemplateRequest, TemplateDto } from "@/types/api";
+import {
+  ComponentType,
+  type LayoutNode,
+  type StyleProperties,
+} from "./component";
+import type { LayoutNodeDto, PageSettingsDto, TemplateLayoutDto } from "./dto";
+import type { PageSettings, TemplateStructure } from "@/store/canvas-store";
 
 /**
  * Template status for frontend UI
@@ -166,7 +172,7 @@ export function mapFrontendStatus(status: TemplateStatus): boolean {
  * Convert backend TemplateDto to frontend Template model
  * Extracts testData from metadata.testData
  */
-export function fromTemplateDto(dto: import("./api").TemplateDto): Template {
+export function fromTemplateDto(dto: TemplateDto): Template {
   // Extract testData from metadata if present
   const testData =
     dto.metadata &&
@@ -178,7 +184,7 @@ export function fromTemplateDto(dto: import("./api").TemplateDto): Template {
   // Create default layout if not present
   const defaultLayout: LayoutNode = {
     id: "root",
-    type: "Column",
+    type: ComponentType.Column,
     properties: {},
     children: [],
     parentId: undefined,
@@ -204,9 +210,7 @@ export function fromTemplateDto(dto: import("./api").TemplateDto): Template {
  * Convert frontend Template to backend SaveTemplateRequest
  * Stores testData in metadata.testData
  */
-export function toSaveTemplateRequest(
-  template: Template
-): import("./api").SaveTemplateRequest {
+export function toSaveTemplateRequest(template: Template): SaveTemplateRequest {
   // Build metadata with testData if present
   const metadata: Record<string, unknown> = {};
   if (template.testData && Object.keys(template.testData).length > 0) {
@@ -220,5 +224,70 @@ export function toSaveTemplateRequest(
     layout: toLayoutNodeDto(template.layout),
     tags: template.tags?.join(","),
     ...(Object.keys(metadata).length > 0 && { metadata }),
+  };
+}
+// ============================================================================
+// TEMPLATE LAYOUT CONVERSION
+// ============================================================================
+
+/**
+ * Convert frontend PageSettings to backend PageSettingsDto
+ */
+export function toPageSettingsDto(settings: PageSettings): PageSettingsDto {
+  return {
+    pageSize: settings.size,
+    orientation: settings.orientation === "portrait" ? "Portrait" : "Landscape",
+    marginTop: settings.margins.top,
+    marginRight: settings.margins.right,
+    marginBottom: settings.margins.bottom,
+    marginLeft: settings.margins.left,
+    backgroundColor: settings.backgroundColor,
+  };
+}
+
+/**
+ * Convert canvas store TemplateStructure to backend TemplateLayoutDto
+ * This is the main conversion function for PDF generation.
+ */
+export function toTemplateLayoutDto(
+  structure: TemplateStructure
+): TemplateLayoutDto {
+  if (!structure.content) {
+    throw new Error("Content layout is required for PDF generation");
+  }
+
+  return {
+    pageSettings: toPageSettingsDto(structure.pageSettings),
+    header: structure.header ? toLayoutNodeDto(structure.header) : null,
+    content: toLayoutNodeDto(structure.content),
+    footer: structure.footer ? toLayoutNodeDto(structure.footer) : null,
+    background: null,
+    foreground: null,
+  };
+}
+
+/**
+ * Create a TemplateLayoutDto from individual parts
+ * Useful when building the layout from separate components
+ */
+export function createTemplateLayoutDto(params: {
+  content: LayoutNode;
+  header?: LayoutNode | null;
+  footer?: LayoutNode | null;
+  pageSettings?: PageSettings;
+}): TemplateLayoutDto {
+  const defaultPageSettings: PageSettings = {
+    size: "A4",
+    orientation: "portrait",
+    margins: { top: 36, right: 36, bottom: 36, left: 36 },
+  };
+
+  return {
+    pageSettings: toPageSettingsDto(params.pageSettings ?? defaultPageSettings),
+    header: params.header ? toLayoutNodeDto(params.header) : null,
+    content: toLayoutNodeDto(params.content),
+    footer: params.footer ? toLayoutNodeDto(params.footer) : null,
+    background: null,
+    foreground: null,
   };
 }

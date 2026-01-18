@@ -9,11 +9,6 @@
 import React, { useMemo } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ComponentMetadata } from "@/types/component";
 import { COMPONENT_ICONS } from "@/lib/constants/icons";
@@ -58,56 +53,40 @@ export function ComponentCard({
   const style = {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
+    // Prevent touch scrolling when dragging - critical for mobile
+    touchAction: "none" as const,
   };
 
   return (
-    <Tooltip delayDuration={300}>
-      <TooltipTrigger asChild>
-        <div
-          ref={setNodeRef}
-          style={style}
-          {...listeners}
-          {...attributes}
-          className={cn(
-            "flex cursor-grab items-center gap-2 rounded-md px-2 py-1.5 select-none",
-            "text-foreground text-sm",
-            "transition-colors duration-150",
-            "hover:bg-accent hover:text-accent-foreground",
-            "focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none",
-            "active:cursor-grabbing",
-            isDragging && "ring-ring z-50 shadow-lg ring-2",
-            disabled && "cursor-not-allowed opacity-50",
-            className
-          )}
-          role="button"
-          tabIndex={disabled ? -1 : 0}
-          aria-label={`Drag ${metadata.name} component`}
-          aria-disabled={disabled}
-        >
-          <IconComponent
-            className="h-4 w-4 shrink-0"
-            style={{ color: categoryMeta.color }}
-            aria-hidden="true"
-          />
-          <span className="truncate text-xs font-medium">{metadata.name}</span>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="right" className="max-w-62.5">
-        <div className="space-y-1">
-          <p className="text-sm font-semibold">{metadata.name}</p>
-          <p className="text-muted-foreground text-xs">
-            {metadata.description}
-          </p>
-          {metadata.allowsChildren && (
-            <p className="text-primary text-xs">
-              {metadata.isWrapper
-                ? "Wrapper (single child)"
-                : "Container (multiple children)"}
-            </p>
-          )}
-        </div>
-      </TooltipContent>
-    </Tooltip>
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={cn(
+        "flex cursor-grab items-center gap-2 rounded-md px-2 py-1.5 select-none",
+        "text-foreground text-sm",
+        "transition-colors duration-150",
+        "hover:bg-accent hover:text-accent-foreground",
+        "focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none",
+        "active:cursor-grabbing",
+        isDragging && "ring-ring z-50 shadow-lg ring-2",
+        disabled && "cursor-not-allowed opacity-50",
+        className
+      )}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-label={`Drag ${metadata.name} component`}
+      aria-disabled={disabled}
+      title={metadata.description}
+    >
+      <IconComponent
+        className="h-4 w-4 shrink-0"
+        style={{ color: categoryMeta.color }}
+        aria-hidden="true"
+      />
+      <span className="truncate text-xs font-medium">{metadata.name}</span>
+    </div>
   );
 }
 

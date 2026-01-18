@@ -667,6 +667,7 @@ export function ComponentTree({
 
             <CollapsibleContent>
               <DndContext
+                id="component-tree-dnd"
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}

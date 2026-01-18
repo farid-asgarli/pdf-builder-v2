@@ -148,7 +148,7 @@ export function usePreviewRefresh(
   } = options;
 
   // Get canvas state for change detection
-  const root = useCanvasStore((state) => state.root);
+  const content = useCanvasStore((state) => state.content);
   const lastModified = useCanvasStore((state) => state.lastModified);
 
   // Get template test data for preview generation
@@ -183,7 +183,7 @@ export function usePreviewRefresh(
   // Track whether we're waiting for debounced refresh
   const { debouncedCallback: debouncedRefresh, isPending: isRefreshPending } =
     useDebouncedCallback(async () => {
-      if (!enabled || !isOpen || !root) {
+      if (!enabled || !isOpen || !content) {
         return;
       }
 
@@ -220,8 +220,8 @@ export function usePreviewRefresh(
       return;
     }
 
-    // Skip if there's no root layout
-    if (!root) {
+    // Skip if there's no content layout
+    if (!content) {
       return;
     }
 
@@ -234,11 +234,11 @@ export function usePreviewRefresh(
 
     // Trigger debounced refresh
     debouncedRefresh();
-  }, [lastModified, root, autoRefresh, enabled, isOpen, debouncedRefresh]);
+  }, [lastModified, content, autoRefresh, enabled, isOpen, debouncedRefresh]);
 
   // Manual refresh function
   const refresh = useCallback(async () => {
-    if (!root) {
+    if (!content) {
       setError("No layout to preview. Add components to the canvas first.");
       return;
     }
@@ -257,7 +257,7 @@ export function usePreviewRefresh(
       onGenerateError?.(errorMessage);
     }
   }, [
-    root,
+    content,
     testData,
     generatePreview,
     setError,

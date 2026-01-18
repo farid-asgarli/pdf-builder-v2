@@ -158,10 +158,14 @@ const customCollisionDetection: CollisionDetection = (args) => {
   const pointerCollisions = pointerWithin(args);
 
   if (pointerCollisions.length > 0) {
-    // Prioritize drop zones over other droppables
+    // Prioritize drop zones over other droppables (including empty canvas)
     const dropZoneCollisions = pointerCollisions.filter((collision) => {
       const data = collision.data?.droppableContainer?.data?.current;
-      return data?.type === "drop-zone" || data?.type === "simple-drop-zone";
+      return (
+        data?.type === "drop-zone" ||
+        data?.type === "simple-drop-zone" ||
+        data?.type === "empty-canvas"
+      );
     });
 
     if (dropZoneCollisions.length > 0) {
@@ -175,10 +179,14 @@ const customCollisionDetection: CollisionDetection = (args) => {
   // Then try rect intersection for when pointer is on the edge
   const rectCollisions = rectIntersection(args);
   if (rectCollisions.length > 0) {
-    // Similarly prioritize drop zones
+    // Similarly prioritize drop zones (including empty canvas)
     const dropZoneCollisions = rectCollisions.filter((collision) => {
       const data = collision.data?.droppableContainer?.data?.current;
-      return data?.type === "drop-zone" || data?.type === "simple-drop-zone";
+      return (
+        data?.type === "drop-zone" ||
+        data?.type === "simple-drop-zone" ||
+        data?.type === "empty-canvas"
+      );
     });
 
     if (dropZoneCollisions.length > 0) {
@@ -237,7 +245,8 @@ function CanvasDropContextComponent({
   const addComponent = useCanvasStore((state) => state.addComponent);
   const moveComponent = useCanvasStore((state) => state.moveComponent);
   const getComponent = useCanvasStore((state) => state.getComponent);
-  const root = useCanvasStore((state) => state.root);
+  const root = useCanvasStore((state) => state.getActiveTree());
+  const setActiveTree = useCanvasStore((state) => state.setActiveTree);
 
   // Selection store
   const select = useSelectionStore((state) => state.select);
@@ -254,11 +263,12 @@ function CanvasDropContextComponent({
     });
 
   // Configure sensors with proper activation constraints
+  // Note: distance and tolerance are mutually exclusive options
+  // distance = pixels to move before drag starts
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8, // 8px movement required to start drag
-        tolerance: 5, // 5px tolerance for accidental movement
       },
     }),
     useSensor(KeyboardSensor, {
@@ -383,8 +393,8 @@ function CanvasDropContextComponent({
       });
       setActiveDropZone(null);
 
-      // No drop target or invalid drop
-      if (!over || !validation?.canDrop || !activeDropZone?.isValid) {
+      // No drop target
+      if (!over) {
         return;
       }
 
@@ -392,6 +402,41 @@ function CanvasDropContextComponent({
       if (!data) return;
 
       const type = data.type as string;
+      const overData = over.data?.current;
+
+      // Handle empty canvas drop zone (special case - creating root)
+      if (
+        over.id === "empty-canvas-dropzone" ||
+        overData?.type === "empty-canvas"
+      ) {
+        if (type === "palette-component") {
+          const componentType = data.componentType as ComponentType;
+          const metadata = data.metadata as ComponentMetadata;
+
+          // Only allow containers as root
+          if (!metadata.allowsChildren || metadata.isWrapper) {
+            return;
+          }
+
+          const newNode: LayoutNode = {
+            id: generateNodeId(),
+            type: componentType,
+            properties: getDefaultProperties(componentType),
+            children: [],
+          };
+
+          // Set as root
+          setActiveTree(newNode);
+          select(newNode.id);
+          onComponentAdded?.(newNode, "root", 0);
+        }
+        return;
+      }
+
+      // Standard drop handling - requires existing root and valid drop zone
+      if (!validation?.canDrop || !activeDropZone?.isValid) {
+        return;
+      }
 
       // Get insertion position
       const targetId = activeDropZone.targetId;
@@ -467,6 +512,7 @@ function CanvasDropContextComponent({
       getComponent,
       select,
       pushState,
+      setActiveTree,
       onComponentAdded,
       onComponentMoved,
       setActiveDropZone,
@@ -516,6 +562,7 @@ function CanvasDropContextComponent({
 
   return (
     <DndContext
+      id="canvas-drop-context"
       sensors={sensors}
       collisionDetection={customCollisionDetection}
       measuring={measuringConfig}

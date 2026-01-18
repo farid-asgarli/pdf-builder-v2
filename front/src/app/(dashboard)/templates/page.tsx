@@ -168,7 +168,7 @@ export default function TemplatesPage() {
     filters.isActive === undefined;
 
   return (
-    <div className="container py-8">
+    <div>
       {/* Page header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

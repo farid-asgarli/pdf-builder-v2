@@ -233,14 +233,14 @@ public sealed class LayoutValidationService(
             }
         }
 
-        // If layout is present, perform layout-specific validation
-        if (request.Layout != null)
+        // If template layout has content, perform layout-specific validation
+        if (request.TemplateLayout.Content != null)
         {
             var layoutRequest = new ValidateLayoutRequest
             {
-                Layout = request.Layout,
+                Layout = request.TemplateLayout.Content,
                 SampleData = request.Data,
-                PageSettings = request.PageSettings,
+                PageSettings = request.TemplateLayout.PageSettings,
             };
 
             var layoutValidation = Validate(layoutRequest);

@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore;
 using PDFBuilder.API.Extensions;
 using PDFBuilder.API.Filters;
+using PDFBuilder.Infrastructure.Persistence;
 using QuestPDF.Infrastructure;
 using Serilog;
 
@@ -91,6 +93,15 @@ try
 
     var app = builder.Build();
 
+    // Apply pending migrations at startup
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<TemplateDbContext>();
+        Log.Information("Applying database migrations...");
+        await db.Database.MigrateAsync();
+        Log.Information("Database migrations applied successfully");
+    }
+
     // Configure the HTTP request pipeline
     app.UsePdfBuilderMiddleware(app.Environment);
 
@@ -134,7 +145,7 @@ try
     Log.Information("PDF Builder API started successfully");
     Log.Information("Environment: {Environment}", app.Environment.EnvironmentName);
 
-    app.Run();
+    await app.RunAsync();
 }
 catch (Exception ex)
 {
@@ -143,7 +154,7 @@ catch (Exception ex)
 }
 finally
 {
-    Log.CloseAndFlush();
+    await Log.CloseAndFlushAsync();
 }
 
 /// <summary>

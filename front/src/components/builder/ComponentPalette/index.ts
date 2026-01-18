@@ -6,6 +6,7 @@
 export {
   ComponentPalette,
   type ComponentPaletteProps,
+  type HeaderFooterFilterMode,
 } from "./ComponentPalette";
 export {
   ComponentCategory,

@@ -2,7 +2,7 @@
  * PDF Generation Hook
  *
  * React Query-based hook for PDF generation with:
- * - Build JSON payload from canvas state
+ * - Build JSON payload from canvas state (header/content/footer)
  * - POST to /api/pdf/generate
  * - Loading/error state management
  * - Download generated PDF
@@ -17,9 +17,7 @@ import { pdfApi } from "@/lib/api/endpoints/pdf";
 import { useCanvasStore } from "@/store/canvas-store";
 import { useTemplateStore } from "@/store/template-store";
 import { usePreviewStore } from "@/store/preview-store";
-import { toLayoutNodeDto } from "@/types/template";
-import type { LayoutNode } from "@/types/component";
-import type { PageSettingsDto } from "@/types/dto";
+import { toTemplateLayoutDto } from "@/types/template";
 import type {
   GeneratePdfRequest,
   GenerateFromTemplateRequest,
@@ -42,8 +40,6 @@ export interface PdfGenerationOptions {
   metadata?: PdfMetadataDto;
   /** Generation options (compression, quality, etc.) */
   options?: GenerationOptionsDto;
-  /** Page settings override */
-  pageSettings?: PageSettingsDto;
   /** Data context for expression evaluation */
   data?: Record<string, unknown>;
 }
@@ -117,35 +113,28 @@ export const pdfGenerationKeys = {
 // PAYLOAD BUILDER
 // ============================================================================
 
+import type { TemplateStructure } from "@/store/canvas-store";
+
 /**
- * Build the PDF generation request payload from a layout node
+ * Build the PDF generation request payload from canvas template structure
+ * Uses the full header/content/footer layout
  */
 function buildPdfRequest(
-  layout: LayoutNode,
+  templateStructure: TemplateStructure,
   options: PdfGenerationOptions = {}
 ): GeneratePdfRequest {
-  const {
-    filename,
-    metadata,
-    options: genOptions,
-    pageSettings,
-    data,
-  } = options;
+  const { filename, metadata, options: genOptions, data } = options;
 
-  // Convert frontend LayoutNode to backend LayoutNodeDto
-  const layoutDto = toLayoutNodeDto(layout);
+  // Convert frontend template structure to backend TemplateLayoutDto
+  const templateLayout = toTemplateLayoutDto(templateStructure);
 
   const request: GeneratePdfRequest = {
-    layout: layoutDto,
+    templateLayout,
   };
 
   // Add optional fields only if provided
   if (data && Object.keys(data).length > 0) {
     request.data = data;
-  }
-
-  if (pageSettings) {
-    request.pageSettings = pageSettings;
   }
 
   if (filename) {
@@ -167,7 +156,7 @@ function buildPdfRequest(
  * Build the template generation request payload
  */
 function buildTemplateRequest(
-  options: Omit<PdfGenerationOptions, "pageSettings"> = {}
+  options: PdfGenerationOptions = {}
 ): GenerateFromTemplateRequest {
   const { filename, options: genOptions, data } = options;
 
@@ -248,10 +237,11 @@ function buildTemplateRequest(
 export function usePdfGeneration(): UsePdfGenerationReturn {
   const queryClient = useQueryClient();
 
-  // Get canvas state
-  const root = useCanvasStore((state) => state.root);
+  // Get canvas state - use exportToJson to get full template structure
+  const content = useCanvasStore((state) => state.content);
+  const exportToJson = useCanvasStore((state) => state.exportToJson);
 
-  // Get template state for page settings and test data
+  // Get template state for test data
   const template = useTemplateStore((state) => state.template);
 
   // Preview store for preview panel integration
@@ -361,7 +351,7 @@ export function usePdfGeneration(): UsePdfGenerationReturn {
   // ========================================
   const buildPayload = useCallback(
     (options: PdfGenerationOptions = {}): BuildPayloadResult => {
-      if (!root) {
+      if (!content) {
         return {
           success: false,
           error: "No layout found. Add components to the canvas first.",
@@ -369,16 +359,17 @@ export function usePdfGeneration(): UsePdfGenerationReturn {
       }
 
       try {
-        // Merge template settings with provided options
+        // Get the full template structure from canvas store
+        const templateStructure = exportToJson();
+
+        // Merge options with template test data
         const mergedOptions: PdfGenerationOptions = {
           ...options,
-          // Use template page settings if not overridden
-          pageSettings: options.pageSettings ?? template?.pageSettings,
           // Use template test data if not overridden
           data: options.data ?? template?.testData,
         };
 
-        const request = buildPdfRequest(root, mergedOptions);
+        const request = buildPdfRequest(templateStructure, mergedOptions);
 
         return {
           success: true,
@@ -395,7 +386,7 @@ export function usePdfGeneration(): UsePdfGenerationReturn {
         };
       }
     },
-    [root, template]
+    [content, exportToJson, template]
   );
 
   // ========================================
@@ -589,8 +580,8 @@ export function usePdfGeneration(): UsePdfGenerationReturn {
  * (i.e., there's content on the canvas)
  */
 export function useCanGeneratePdf(): boolean {
-  const root = useCanvasStore((state) => state.root);
-  return root !== null;
+  const content = useCanvasStore((state) => state.content);
+  return content !== null;
 }
 
 /**

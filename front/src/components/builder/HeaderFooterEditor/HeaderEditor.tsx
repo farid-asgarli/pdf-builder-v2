@@ -501,6 +501,7 @@ export const HeaderEditor = memo(function HeaderEditor({
             {/* Canvas Area */}
             <div className="flex-1 p-2">
               <DndContext
+                id="header-editor-dnd"
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}

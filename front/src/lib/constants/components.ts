@@ -77,6 +77,8 @@ const columnMetadata: ComponentMetadata = {
   isWrapper: false,
   priorityTier: 1,
   questPdfApi: "container.Column(col => ...)",
+  headerFooterCompatible: true,
+  recommendedForHeaderFooter: true,
 };
 
 const rowMetadata: ComponentMetadata = {
@@ -91,6 +93,8 @@ const rowMetadata: ComponentMetadata = {
   isWrapper: false,
   priorityTier: 1,
   questPdfApi: "container.Row(row => ...)",
+  headerFooterCompatible: true,
+  recommendedForHeaderFooter: true,
 };
 
 const tableMetadata: ComponentMetadata = {
@@ -137,6 +141,7 @@ const tableMetadata: ComponentMetadata = {
   isWrapper: false,
   priorityTier: 1,
   questPdfApi: "container.Table(table => ...)",
+  headerFooterCompatible: false,
 };
 
 const layersMetadata: ComponentMetadata = {
@@ -181,6 +186,7 @@ const decorationMetadata: ComponentMetadata = {
   isWrapper: false,
   priorityTier: 2,
   questPdfApi: "container.Decoration(dec => ...)",
+  headerFooterCompatible: false,
 };
 
 const inlinedMetadata: ComponentMetadata = {
@@ -247,6 +253,7 @@ const multiColumnMetadata: ComponentMetadata = {
   isWrapper: false,
   priorityTier: 4,
   questPdfApi: "Custom implementation using Column",
+  headerFooterCompatible: false,
 };
 
 const listMetadata: ComponentMetadata = {
@@ -347,6 +354,7 @@ const listMetadata: ComponentMetadata = {
   isWrapper: false,
   priorityTier: 3,
   questPdfApi: "Custom implementation using Column and Row elements",
+  headerFooterCompatible: false,
 };
 
 // ============================================================================
@@ -383,6 +391,8 @@ const textMetadata: ComponentMetadata = {
   allowsChildren: false,
   priorityTier: 1,
   questPdfApi: 'container.Text("...")',
+  headerFooterCompatible: true,
+  recommendedForHeaderFooter: true,
 };
 
 const imageMetadata: ComponentMetadata = {
@@ -427,6 +437,8 @@ const imageMetadata: ComponentMetadata = {
   allowsChildren: false,
   priorityTier: 1,
   questPdfApi: "container.Image(bytes/path)",
+  headerFooterCompatible: true,
+  recommendedForHeaderFooter: true,
 };
 
 const lineMetadata: ComponentMetadata = {
@@ -468,6 +480,8 @@ const lineMetadata: ComponentMetadata = {
   allowsChildren: false,
   priorityTier: 2,
   questPdfApi: "container.LineHorizontal(1) / LineVertical(1)",
+  headerFooterCompatible: true,
+  recommendedForHeaderFooter: true,
 };
 
 const placeholderMetadata: ComponentMetadata = {
@@ -1343,6 +1357,7 @@ const pageBreakMetadata: ComponentMetadata = {
   allowsChildren: false,
   priorityTier: 1,
   questPdfApi: "container.PageBreak()",
+  headerFooterCompatible: false,
 };
 
 const ensureSpaceMetadata: ComponentMetadata = {
@@ -1371,6 +1386,7 @@ const ensureSpaceMetadata: ComponentMetadata = {
   isWrapper: true,
   priorityTier: 3,
   questPdfApi: "container.EnsureSpace(100)",
+  headerFooterCompatible: false,
 };
 
 const showEntireMetadata: ComponentMetadata = {
@@ -1385,6 +1401,7 @@ const showEntireMetadata: ComponentMetadata = {
   isWrapper: true,
   priorityTier: 3,
   questPdfApi: "container.ShowEntire()",
+  headerFooterCompatible: false,
 };
 
 const stopPagingMetadata: ComponentMetadata = {
@@ -1399,6 +1416,7 @@ const stopPagingMetadata: ComponentMetadata = {
   isWrapper: true,
   priorityTier: 4,
   questPdfApi: "container.StopPaging()",
+  headerFooterCompatible: false,
 };
 
 const sectionMetadata: ComponentMetadata = {
@@ -1425,6 +1443,7 @@ const sectionMetadata: ComponentMetadata = {
   isWrapper: true,
   priorityTier: 3,
   questPdfApi: 'container.Section("name")',
+  headerFooterCompatible: false,
 };
 
 const repeatMetadata: ComponentMetadata = {
@@ -1439,6 +1458,7 @@ const repeatMetadata: ComponentMetadata = {
   isWrapper: true,
   priorityTier: 4,
   questPdfApi: "Custom implementation",
+  headerFooterCompatible: false,
 };
 
 const showOnceMetadata: ComponentMetadata = {
@@ -1453,6 +1473,7 @@ const showOnceMetadata: ComponentMetadata = {
   isWrapper: true,
   priorityTier: 4,
   questPdfApi: "container.ShowOnce()",
+  headerFooterCompatible: false,
 };
 
 const skipOnceMetadata: ComponentMetadata = {
@@ -1467,6 +1488,7 @@ const skipOnceMetadata: ComponentMetadata = {
   isWrapper: true,
   priorityTier: 4,
   questPdfApi: "container.SkipOnce()",
+  headerFooterCompatible: false,
 };
 
 // ============================================================================
@@ -1827,3 +1849,136 @@ export const CATEGORY_ICONS: Record<ComponentCategory, string> = {
  * Total component count
  */
 export const TOTAL_COMPONENT_COUNT = Object.keys(COMPONENT_REGISTRY).length;
+
+// ============================================================================
+// Header/Footer Filtering Utilities
+// ============================================================================
+
+/**
+ * Components that are explicitly incompatible with header/footer mode
+ * These include tables, complex layouts, and flow control components
+ */
+export const HEADER_FOOTER_INCOMPATIBLE_TYPES: ComponentType[] = [
+  ComponentType.Table,
+  ComponentType.Decoration,
+  ComponentType.MultiColumn,
+  ComponentType.List,
+  ComponentType.PageBreak,
+  ComponentType.EnsureSpace,
+  ComponentType.Section,
+  ComponentType.Repeat,
+  ComponentType.ShowOnce,
+  ComponentType.SkipOnce,
+  ComponentType.ShowEntire,
+  ComponentType.StopPaging,
+];
+
+/**
+ * Components recommended for header/footer usage
+ * These are simple, clean components ideal for headers and footers
+ */
+export const HEADER_FOOTER_RECOMMENDED_TYPES: ComponentType[] = [
+  ComponentType.Column,
+  ComponentType.Row,
+  ComponentType.Text,
+  ComponentType.Image,
+  ComponentType.Line,
+];
+
+/**
+ * Check if a component type is compatible with header/footer mode
+ * @param type - The component type to check
+ * @returns true if compatible, false otherwise
+ */
+export function isHeaderFooterCompatible(type: ComponentType): boolean {
+  const metadata = COMPONENT_REGISTRY[type];
+  // If explicitly marked as incompatible, return false
+  if (metadata.headerFooterCompatible === false) {
+    return false;
+  }
+  // Default to true for components without explicit marking
+  return true;
+}
+
+/**
+ * Check if a component type is recommended for header/footer usage
+ * @param type - The component type to check
+ * @returns true if recommended, false otherwise
+ */
+export function isRecommendedForHeaderFooter(type: ComponentType): boolean {
+  const metadata = COMPONENT_REGISTRY[type];
+  return metadata.recommendedForHeaderFooter === true;
+}
+
+/**
+ * Get components filtered by header/footer compatibility
+ * @param category - Optional category filter
+ * @param includeIncompatible - Whether to include incompatible components (shown with warning)
+ * @returns Array of component metadata, optionally filtered
+ */
+export function getComponentsForHeaderFooter(
+  category?: ComponentCategory,
+  includeIncompatible: boolean = false
+): ComponentMetadata[] {
+  let components = Object.values(COMPONENT_REGISTRY);
+
+  // Filter by category if specified
+  if (category) {
+    components = components.filter((c) => c.category === category);
+  }
+
+  // Filter out incompatible components unless explicitly included
+  if (!includeIncompatible) {
+    components = components.filter((c) => c.headerFooterCompatible !== false);
+  }
+
+  return components;
+}
+
+/**
+ * Get recommended components for header/footer mode
+ * @returns Array of component metadata that are recommended for headers/footers
+ */
+export function getRecommendedHeaderFooterComponents(): ComponentMetadata[] {
+  return Object.values(COMPONENT_REGISTRY).filter(
+    (c) => c.recommendedForHeaderFooter === true
+  );
+}
+
+/**
+ * Get the warning message for an incompatible component in header/footer mode
+ * @param type - The component type
+ * @returns Warning message string or null if compatible
+ */
+export function getHeaderFooterWarningMessage(
+  type: ComponentType
+): string | null {
+  const metadata = COMPONENT_REGISTRY[type];
+
+  if (metadata.headerFooterCompatible === false) {
+    switch (type) {
+      case ComponentType.Table:
+        return "Tables are not recommended in headers/footers. They can cause layout issues with pagination.";
+      case ComponentType.PageBreak:
+        return "Page breaks cannot be used in headers/footers.";
+      case ComponentType.Decoration:
+        return "Decoration components are not allowed in headers/footers.";
+      case ComponentType.MultiColumn:
+        return "Multi-column layouts are not suitable for headers/footers.";
+      case ComponentType.List:
+        return "Lists are not recommended in headers/footers. Consider using simple text instead.";
+      case ComponentType.Section:
+      case ComponentType.Repeat:
+      case ComponentType.ShowOnce:
+      case ComponentType.SkipOnce:
+      case ComponentType.EnsureSpace:
+      case ComponentType.ShowEntire:
+      case ComponentType.StopPaging:
+        return "Flow control components are not applicable in headers/footers.";
+      default:
+        return `${metadata.name} is not recommended for use in headers/footers.`;
+    }
+  }
+
+  return null;
+}

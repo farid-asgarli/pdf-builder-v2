@@ -87,44 +87,24 @@ public class PdfController(
             // Build PDF generation options
             var options = BuildGenerationOptions(request);
 
-            byte[] pdfBytes;
+            // Map DTO to domain model using template layout
+            var templateLayout = _mapper.Map<TemplateLayout>(request.TemplateLayout);
 
-            // Check if using full template layout (header/footer/content) or legacy single layout
-            var effectiveTemplateLayout = request.GetEffectiveTemplateLayout();
+            _logger.LogDebug(
+                "Using TemplateLayout with HasHeader: {HasHeader}, HasFooter: {HasFooter}, HasBackground: {HasBackground}, HasForeground: {HasForeground}",
+                templateLayout.HasHeader,
+                templateLayout.HasFooter,
+                templateLayout.HasBackground,
+                templateLayout.HasForeground
+            );
 
-            if (effectiveTemplateLayout is not null)
-            {
-                // Map DTO to domain model using full template layout
-                var templateLayout = _mapper.Map<TemplateLayout>(effectiveTemplateLayout);
-
-                _logger.LogDebug(
-                    "Using TemplateLayout with HasHeader: {HasHeader}, HasFooter: {HasFooter}, HasBackground: {HasBackground}, HasForeground: {HasForeground}",
-                    templateLayout.HasHeader,
-                    templateLayout.HasFooter,
-                    templateLayout.HasBackground,
-                    templateLayout.HasForeground
-                );
-
-                // Generate PDF using the new TemplateLayout-based method
-                pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
-                    templateLayout,
-                    data,
-                    options,
-                    cancellationToken
-                );
-            }
-            else
-            {
-                // Fallback to legacy single layout (backward compatibility)
-                var layout = _mapper.Map<LayoutNode>(request.Layout);
-
-                pdfBytes = await _pdfGenerator.GeneratePdfAsync(
-                    layout,
-                    data,
-                    options,
-                    cancellationToken
-                );
-            }
+            // Generate PDF using TemplateLayout
+            var pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
+                templateLayout,
+                data,
+                options,
+                cancellationToken
+            );
 
             stopwatch.Stop();
 
@@ -192,9 +172,8 @@ public class PdfController(
         var correlationId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
 
         _logger.LogInformation(
-            "PDF metadata generation request received. CorrelationId: {CorrelationId}, HasTemplateLayout: {HasTemplateLayout}",
-            correlationId,
-            request.TemplateLayout is not null
+            "PDF metadata generation request received. CorrelationId: {CorrelationId}",
+            correlationId
         );
 
         var stopwatch = Stopwatch.StartNew();
@@ -209,36 +188,16 @@ public class PdfController(
             // Build PDF generation options
             var options = BuildGenerationOptions(request);
 
-            byte[] pdfBytes;
+            // Map DTO to domain model using template layout
+            var templateLayout = _mapper.Map<TemplateLayout>(request.TemplateLayout);
 
-            // Check if using full template layout or legacy single layout
-            var effectiveTemplateLayout = request.GetEffectiveTemplateLayout();
-
-            if (effectiveTemplateLayout is not null)
-            {
-                // Map DTO to domain model using full template layout
-                var templateLayout = _mapper.Map<TemplateLayout>(effectiveTemplateLayout);
-
-                // Generate PDF using the new TemplateLayout-based method
-                pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
-                    templateLayout,
-                    data,
-                    options,
-                    cancellationToken
-                );
-            }
-            else
-            {
-                // Fallback to legacy single layout
-                var layout = _mapper.Map<LayoutNode>(request.Layout);
-
-                pdfBytes = await _pdfGenerator.GeneratePdfAsync(
-                    layout,
-                    data,
-                    options,
-                    cancellationToken
-                );
-            }
+            // Generate PDF using TemplateLayout
+            var pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
+                templateLayout,
+                data,
+                options,
+                cancellationToken
+            );
 
             stopwatch.Stop();
 
@@ -376,36 +335,16 @@ public class PdfController(
                 cancellationToken
             );
 
-            byte[] pdfBytes;
+            // Map DTO to domain model using template layout
+            var templateLayout = _mapper.Map<TemplateLayout>(request.TemplateLayout);
 
-            // Check if using full template layout or legacy single layout
-            var effectiveTemplateLayout = request.GetEffectiveTemplateLayout();
-
-            if (effectiveTemplateLayout is not null)
-            {
-                // Map DTO to domain model using full template layout
-                var templateLayout = _mapper.Map<TemplateLayout>(effectiveTemplateLayout);
-
-                // Generate PDF using the new TemplateLayout-based method
-                pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
-                    templateLayout,
-                    data,
-                    options,
-                    cancellationToken
-                );
-            }
-            else
-            {
-                // Fallback to legacy single layout
-                var layout = _mapper.Map<LayoutNode>(request.Layout);
-
-                pdfBytes = await _pdfGenerator.GeneratePdfAsync(
-                    layout,
-                    data,
-                    options,
-                    cancellationToken
-                );
-            }
+            // Generate PDF using TemplateLayout
+            var pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
+                templateLayout,
+                data,
+                options,
+                cancellationToken
+            );
 
             stopwatch.Stop();
 
@@ -511,14 +450,14 @@ public class PdfController(
     {
         var options = new PdfGenerationOptions();
 
-        // Apply page settings if provided
-        if (request.PageSettings != null)
+        // Apply page settings from template layout if provided
+        if (request.TemplateLayout.PageSettings != null)
         {
             // Map page size
-            options.DefaultPageSize = MapPageSize(request.PageSettings);
+            options.DefaultPageSize = MapPageSize(request.TemplateLayout.PageSettings);
 
             // Map margins
-            options.DefaultMargins = MapMargins(request.PageSettings);
+            options.DefaultMargins = MapMargins(request.TemplateLayout.PageSettings);
         }
 
         // Apply metadata if provided

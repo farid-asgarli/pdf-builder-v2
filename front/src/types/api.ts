@@ -6,7 +6,7 @@
  * Keep this file in sync with backend changes.
  */
 
-import type { LayoutNodeDto, PageSettingsDto } from "./dto";
+import type { LayoutNodeDto, PageSettingsDto, TemplateLayoutDto } from "./dto";
 
 // ============================================================================
 // GENERIC API RESPONSE WRAPPER
@@ -146,14 +146,16 @@ export interface GenerationOptionsDto {
 
 /**
  * Request model for PDF generation.
+ * Uses the full template layout structure with header, content, footer, and page settings.
  */
 export interface GeneratePdfRequest {
-  /** The layout tree definition (root node) */
-  layout: LayoutNodeDto;
+  /**
+   * Complete template layout with header, content, footer, and page settings.
+   * Contains all layout trees for the PDF document.
+   */
+  templateLayout: TemplateLayoutDto;
   /** Data context for expression evaluation (available as 'data' in expressions) */
   data?: Record<string, unknown>;
-  /** Page settings for the PDF document */
-  pageSettings?: PageSettingsDto;
   /** Output filename (without extension) */
   filename?: string;
   /** PDF metadata */
