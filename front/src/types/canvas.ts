@@ -45,6 +45,14 @@ export interface BoundingBox {
 export type ZoomLevel = 0.25 | 0.5 | 0.75 | 1 | 1.25 | 1.5 | 2;
 
 /**
+ * Editing mode for canvas (which part of the document is being edited)
+ * - content: Main document content (flows with pagination)
+ * - header: Document header (repeats on every page)
+ * - footer: Document footer (repeats on every page)
+ */
+export type EditingMode = "content" | "header" | "footer";
+
+/**
  * Canvas state for zoom and pan
  */
 export interface CanvasViewState {

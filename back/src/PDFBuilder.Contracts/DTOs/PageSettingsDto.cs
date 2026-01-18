@@ -74,6 +74,76 @@ public class PageSettingsDto
     public float? MarginLeft { get; set; }
 
     /// <summary>
+    /// Gets or sets the fixed height for the header slot in points.
+    /// When specified, the header area will have a fixed height.
+    /// If null, header height is determined by its content.
+    /// </summary>
+    /// <remarks>
+    /// The header repeats on every page. Setting a fixed height ensures
+    /// consistent layout across all pages.
+    /// </remarks>
+    /// <example>60</example>
+    [Range(0, 500, ErrorMessage = "HeaderHeight must be between 0 and 500")]
+    public float? HeaderHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum height for the header slot in points.
+    /// Used when header height is content-driven but needs a minimum.
+    /// </summary>
+    /// <example>30</example>
+    [Range(0, 500, ErrorMessage = "MinHeaderHeight must be between 0 and 500")]
+    public float? MinHeaderHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum height for the header slot in points.
+    /// Used to limit header expansion when height is content-driven.
+    /// </summary>
+    /// <example>100</example>
+    [Range(0, 500, ErrorMessage = "MaxHeaderHeight must be between 0 and 500")]
+    public float? MaxHeaderHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the fixed height for the footer slot in points.
+    /// When specified, the footer area will have a fixed height.
+    /// If null, footer height is determined by its content.
+    /// </summary>
+    /// <remarks>
+    /// The footer repeats on every page. Setting a fixed height ensures
+    /// consistent layout across all pages.
+    /// </remarks>
+    /// <example>40</example>
+    [Range(0, 500, ErrorMessage = "FooterHeight must be between 0 and 500")]
+    public float? FooterHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the minimum height for the footer slot in points.
+    /// Used when footer height is content-driven but needs a minimum.
+    /// </summary>
+    /// <example>20</example>
+    [Range(0, 500, ErrorMessage = "MinFooterHeight must be between 0 and 500")]
+    public float? MinFooterHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum height for the footer slot in points.
+    /// Used to limit footer expansion when height is content-driven.
+    /// </summary>
+    /// <example>80</example>
+    [Range(0, 500, ErrorMessage = "MaxFooterHeight must be between 0 and 500")]
+    public float? MaxFooterHeight { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to extend the header content to fill the allocated HeaderHeight space.
+    /// When true, header content will use Extend behavior to fill the fixed height.
+    /// </summary>
+    public bool? ExtendHeaderToFillSpace { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether to extend the footer content to fill the allocated FooterHeight space.
+    /// When true, footer content will use Extend behavior to fill the fixed height.
+    /// </summary>
+    public bool? ExtendFooterToFillSpace { get; set; }
+
+    /// <summary>
     /// Gets or sets the background color for all pages in hex format.
     /// </summary>
     /// <example>#FFFFFF</example>

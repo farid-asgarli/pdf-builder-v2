@@ -10,6 +10,7 @@
  * - File validation (type, size)
  * - Base64 encoding for embedded images
  * - Clear/remove functionality
+ * - Expression preview showing resolved values
  */
 "use client";
 
@@ -37,6 +38,7 @@ import {
   XIcon,
   AlertCircleIcon,
 } from "lucide-react";
+import { ExpressionPreview } from "./ExpressionPreview";
 
 // ============================================================================
 // Types
@@ -601,6 +603,16 @@ export function ImageUploader({
         <p className="text-muted-foreground text-xs opacity-60">
           Supports expressions: {"{{ data.imageUrl }}"}
         </p>
+      )}
+
+      {/* Expression preview - shows resolved value from test data */}
+      {supportsExpression && hasValue && sourceType === "expression" && (
+        <ExpressionPreview
+          value={value}
+          maxLength={60}
+          variant="block"
+          label="Image URL resolves to:"
+        />
       )}
 
       {/* Error Message */}

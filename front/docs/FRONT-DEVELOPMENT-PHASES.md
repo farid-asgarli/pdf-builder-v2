@@ -110,6 +110,18 @@ pdfbuilder-frontend/
 │   │   │   │   ├── ComponentTree.tsx          # Hierarchical tree view
 │   │   │   │   ├── TreeNode.tsx               # Recursive tree node
 │   │   │   │   └── TreeActions.tsx            # Node actions (delete, duplicate)
+│   │   │   ├── CanvasModeSelector/            # Header/Footer/Content mode switching
+│   │   │   │   ├── CanvasModeSelector.tsx     # Mode tabs (Content/Header/Footer)
+│   │   │   │   ├── ModeTab.tsx                # Individual mode tab
+│   │   │   │   └── ModeIndicator.tsx          # "Editing: Header" banner
+│   │   │   ├── HeaderFooterEditor/            # Header/Footer editing
+│   │   │   │   ├── HeaderEditor.tsx           # Header-specific canvas
+│   │   │   │   ├── FooterEditor.tsx           # Footer-specific canvas
+│   │   │   │   ├── PagePreview.tsx            # Full page preview
+│   │   │   │   └── RepeatIndicator.tsx        # "Repeats on every page" visual
+│   │   │   ├── PageContext/                   # Page variables
+│   │   │   │   ├── PageVariables.tsx          # Page variable reference panel
+│   │   │   │   └── PageExpressionHelper.tsx   # Monaco autocomplete helper
 │   │   │   ├── PropertiesPanel/
 │   │   │   │   ├── PropertiesPanel.tsx        # Right sidebar properties
 │   │   │   │   ├── PropertySection.tsx        # Collapsible property groups
@@ -902,13 +914,15 @@ Update Resize Handles
 
 ---
 
-### **Phase 5: Properties Panel (Week 3, Days 1-4)**
+### **Phase 5: Properties Panel & Header/Footer System (Week 3, Days 1-4)**
 
 #### Goals
 
 - Build dynamic properties panel
 - Create property input fields
 - Integrate Monaco editor for expressions
+- **Implement header/footer editing mode**
+- **Add page context variables**
 
 #### Tasks
 
@@ -935,6 +949,7 @@ Update Resize Handles
 - [ ] Configure Monaco for expression syntax
 - [ ] Implement `{{ }}` syntax highlighting
 - [ ] Add autocomplete for data fields
+- [ ] **Add autocomplete for page variables (`{{ currentPage }}`, `{{ totalPages }}`)**
 - [ ] Implement expression validation
 - [ ] Show inline errors
 
@@ -945,12 +960,109 @@ Update Resize Handles
 - [ ] `SizingProperties.tsx` - Width, height, alignment, etc.
 - [ ] `LayoutProperties.tsx` - Spacing for containers
 
+#### **Header/Footer Editing System (NEW)**
+
+##### Canvas Mode Selector
+
+- [ ] Create `CanvasModeSelector.tsx`
+  - [ ] Three tabs: "Main Content" | "Header" | "Footer"
+  - [ ] Visual indicator of current mode
+  - [ ] Mode switching updates canvas store
+- [ ] Create `ModeTab.tsx` - Individual clickable tab
+- [ ] Create `ModeIndicator.tsx` - Banner showing "Editing: Header" with icon
+
+##### Header/Footer Editors
+
+- [ ] Create `HeaderEditor.tsx`
+  - [ ] Separate canvas area for header components
+  - [ ] Shows header layout tree
+  - [ ] Height constraint (e.g., max 150px)
+  - [ ] Visual "Repeats on every page" indicator
+- [ ] Create `FooterEditor.tsx`
+  - [ ] Separate canvas area for footer components
+  - [ ] Shows footer layout tree
+  - [ ] Height constraint (e.g., max 100px)
+  - [ ] Page number helper UI
+- [ ] Create `PagePreview.tsx`
+  - [ ] Mini preview showing header + content + footer together
+  - [ ] Visual page boundaries
+  - [ ] Page number simulation
+
+##### Page Context Variables
+
+- [ ] Create `PageVariables.tsx` panel
+  - [ ] List of available page variables:
+    - `{{ currentPage }}` - Current page number
+    - `{{ totalPages }}` - Total page count
+    - `{{ section.name }}` - Current section name
+    - `{{ template.title }}` - Document title
+    - `{{ template.createdDate }}` - Template creation date
+  - [ ] Copy-to-clipboard for each variable
+  - [ ] Documentation tooltip for each
+- [ ] Create `PageExpressionHelper.tsx`
+  - [ ] Smart autocomplete in Monaco for page variables
+  - [ ] Context-aware suggestions (only show page vars in header/footer)
+  - [ ] Preview of evaluated expressions
+
+##### Store Updates
+
+- [ ] Update `canvas-store.ts`:
+
+  ```typescript
+  interface CanvasState {
+    // Separate trees
+    header: LayoutNode | null;
+    content: LayoutNode | null; // renamed from 'root'
+    footer: LayoutNode | null;
+
+    // Current editing mode
+    editingMode: "content" | "header" | "footer";
+
+    // Page settings
+    pageSettings: {
+      size: "A4" | "Letter" | "Legal";
+      orientation: "portrait" | "landscape";
+      margins: { top: number; right: number; bottom: number; left: number };
+      headerHeight?: number;
+      footerHeight?: number;
+    };
+
+    // Actions
+    setEditingMode: (mode: "content" | "header" | "footer") => void;
+    updateHeader: (header: LayoutNode) => void;
+    updateFooter: (footer: LayoutNode) => void;
+    getActiveTree: () => LayoutNode | null; // Returns tree based on mode
+  }
+  ```
+
+##### Component Palette Updates
+
+- [ ] Filter components based on mode
+  - Header/Footer: Only allow Text, Image, Row, Column (no tables, complex layouts)
+  - Show warning if user tries to add incompatible component
+- [ ] Show "Best for headers/footers" badge on recommended components
+
+##### Export Updates
+
+- [ ] Update `exportToJson()` to include all three trees:
+  ```json
+  {
+    "pageSettings": { ... },
+    "header": { ... },
+    "content": { ... },
+    "footer": { ... }
+  }
+  ```
+
 #### Deliverables
 
 - ✅ Fully functional properties panel
 - ✅ All property input types working
-- ✅ Monaco editor integrated
+- ✅ Monaco editor integrated with page variables
 - ✅ Live property updates to canvas
+- ✅ **Header/footer editing modes working**
+- ✅ **Page context variables available**
+- ✅ **Visual indication of repeating headers/footers**
 
 ---
 
@@ -1231,20 +1343,20 @@ Update Resize Handles
 #### Tier 2 Component Renderers
 
 - [ ] LineRenderer
-- [x] HyperlinkRenderer
-- [x] LayersRenderer (with layer visualization)
-- [x] DecorationRenderer (header/footer indicators)
-- [x] RoundedCornersRenderer
-- [x] AlignmentRenderers (visual alignment guides)
+- [ ] HyperlinkRenderer
+- [ ] LayersRenderer (with layer visualization)
+- [ ] DecorationRenderer (header/footer indicators)
+- [ ] RoundedCornersRenderer
+- [ ] AlignmentRenderers (visual alignment guides)
 
 #### Tier 3 Component Renderers
 
-- [x] ListRenderer (nested list structure)
-- [x] QRCodeRenderer (QR preview)
-- [x] BarcodeRenderer (barcode preview)
+- [ ] ListRenderer (nested list structure)
+- [ ] QRCodeRenderer (QR preview)
+- [ ] BarcodeRenderer (barcode preview)
 - [ ] RotateRenderer (rotation visual)
 - [ ] ScaleRenderer (scale indicator)
-- [x] TranslateRenderer (offset visual)
+- [ ] TranslateRenderer (offset visual)
 
 #### Advanced Properties
 
@@ -1385,7 +1497,18 @@ Update Resize Handles
 // PDF Generation
 POST /api/pdf/generate
 Request: {
-  layout: LayoutNodeDto,
+  layout: {
+    pageSettings: {
+      size: 'A4' | 'Letter' | 'Legal',
+      orientation: 'portrait' | 'landscape',
+      margins: { top, right, bottom, left },
+      headerHeight?: number,
+      footerHeight?: number
+    },
+    header: LayoutNodeDto | null,
+    content: LayoutNodeDto,
+    footer: LayoutNodeDto | null
+  },
   data: Record<string, any>,
   settings?: PdfSettings
 }
@@ -1399,7 +1522,11 @@ Response: {
 // Validation
 POST /api/validation/validate
 Request: {
-  layout: LayoutNodeDto
+  layout: {
+    header: LayoutNodeDto | null,
+    content: LayoutNodeDto,
+    footer: LayoutNodeDto | null
+  }
 }
 Response: {
   isValid: boolean,
@@ -1419,19 +1546,33 @@ POST   /api/templates/{id}/duplicate
 ### **Data Flow**
 
 ```
-User Action (Canvas)
+User Action (Canvas - any mode)
   ↓
-Update Zustand Store (canvas-store)
+Update Zustand Store (header/content/footer based on mode)
   ↓
-Canvas Re-renders
+Canvas Re-renders (showing active editing mode)
   ↓
 User Clicks "Preview"
   ↓
-Convert Store → JSON Layout
+Convert Store → JSON Layout (all three trees)
   ↓
 POST to /api/pdf/generate
+Body: {
+  layout: {
+    pageSettings: { size, orientation, margins },
+    header: LayoutNode | null,
+    content: LayoutNode,
+    footer: LayoutNode | null
+  },
+  data: { ... }
+}
   ↓
 Backend Processes with QuestPDF
+  - Decoration component wraps content with header/footer
+  - Header renders on every page
+  - Content flows with pagination
+  - Footer renders on every page
+  - Page numbers evaluated: {{ currentPage }}, {{ totalPages }}
   ↓
 Return PDF URL
   ↓
@@ -1446,10 +1587,24 @@ Display in Preview Panel
 
 ```typescript
 interface CanvasState {
-  // Layout tree
-  root: LayoutNode | null;
+  // Layout trees (three separate trees)
+  header: LayoutNode | null;
+  content: LayoutNode | null; // Main content (previously 'root')
+  footer: LayoutNode | null;
 
-  // Actions
+  // Current editing mode
+  editingMode: "content" | "header" | "footer";
+
+  // Page settings
+  pageSettings: {
+    size: "A4" | "Letter" | "Legal";
+    orientation: "portrait" | "landscape";
+    margins: { top: number; right: number; bottom: number; left: number };
+    headerHeight?: number; // Max header height
+    footerHeight?: number; // Max footer height
+  };
+
+  // Actions for main content
   addComponent: (
     parentId: string,
     component: LayoutNode,
@@ -1459,14 +1614,29 @@ interface CanvasState {
   deleteComponent: (id: string) => void;
   moveComponent: (id: string, newParentId: string, index: number) => void;
 
-  // Utilities
+  // Actions for header/footer
+  setEditingMode: (mode: "content" | "header" | "footer") => void;
+  updateHeader: (header: LayoutNode | null) => void;
+  updateFooter: (footer: LayoutNode | null) => void;
+  clearHeader: () => void;
+  clearFooter: () => void;
+
+  // Utilities (context-aware based on editing mode)
+  getActiveTree: () => LayoutNode | null; // Returns current editing tree
   getComponent: (id: string) => LayoutNode | null;
   getChildren: (parentId: string) => LayoutNode[];
 
   // State management
   clear: () => void;
-  loadFromJson: (json: LayoutNode) => void;
-  exportToJson: () => LayoutNode;
+  loadFromJson: (json: TemplateStructure) => void;
+  exportToJson: () => TemplateStructure;
+}
+
+interface TemplateStructure {
+  pageSettings: PageSettings;
+  header: LayoutNode | null;
+  content: LayoutNode | null;
+  footer: LayoutNode | null;
 }
 ```
 
@@ -1805,3 +1975,36 @@ NEXT_PUBLIC_ALLOWED_IMAGE_FORMATS=png,jpg,jpeg,webp,svg
 10. ✅ Updated timeline and critical success factors
 
 **Key Takeaway:** Resize system is now properly integrated into the development phases, not treated as an afterthought. Backend requires no changes - it simply receives the final numeric values.
+
+---
+
+## Header/Footer System Update
+
+**Latest Addition:** Comprehensive header/footer editing functionality
+
+**What Changed:**
+
+1. ✅ Added canvas mode selector (Content/Header/Footer tabs)
+2. ✅ Separate editing contexts for header, content, and footer
+3. ✅ Page context variables (`{{ currentPage }}`, `{{ totalPages }}`, etc.)
+4. ✅ Visual indicators for repeating header/footer behavior
+5. ✅ Updated canvas store to manage three separate layout trees
+6. ✅ Updated API contract to send header/content/footer separately
+7. ✅ Monaco autocomplete for page-specific variables
+8. ✅ Component palette filtering based on editing mode
+9. ✅ Full page preview showing header + content + footer together
+10. ✅ Integrated into Phase 5 (Properties Panel & Header/Footer System)
+
+**Why This Matters:**
+
+- Insurance contracts NEED headers (company logo, document title) and footers (page numbers, legal disclaimers)
+- Headers/footers repeat on every page - users need to understand this behavior
+- Page numbers require special variables that only make sense in header/footer context
+- Professional documents require this feature from day one
+
+**Backend Coordination Required:**
+
+- Backend must accept three separate trees: header, content, footer
+- Backend must provide page context in RenderContext (currentPage, totalPages)
+- Backend LayoutEngine must use QuestPDF Page.Header/Content/Footer slots
+- See updated API contract in Backend Integration section

@@ -10,6 +10,10 @@ namespace PDFBuilder.Validation.Validators;
 /// Validates the complete PDF generation request including layout structure,
 /// data context, page settings, and generation options.
 /// </summary>
+/// <remarks>
+/// Supports both the new TemplateLayout structure (with header/footer/background/foreground)
+/// and the legacy flat structure (Layout + PageSettings) for backward compatibility.
+/// </remarks>
 public sealed class GeneratePdfRequestValidator : AbstractValidator<GeneratePdfRequest>
 {
     /// <summary>
@@ -32,17 +36,27 @@ public sealed class GeneratePdfRequestValidator : AbstractValidator<GeneratePdfR
     /// </summary>
     public GeneratePdfRequestValidator()
     {
-        // Layout is required
-        RuleFor(x => x.Layout)
-            .NotNull()
-            .WithMessage("Layout definition is required")
-            .SetValidator(new LayoutNodeValidator()!)
-            .When(x => x.Layout != null);
+        // Validate that at least one layout structure is provided
+        RuleFor(x => x)
+            .Must(x => x.HasValidLayout())
+            .WithMessage(
+                "Either 'TemplateLayout' with 'Content' or legacy 'Layout' must be provided"
+            );
 
-        // Also validate component properties
+        // Validate TemplateLayout (new structure with header/footer support)
+        RuleFor(x => x.TemplateLayout)
+            .SetValidator(new TemplateLayoutValidator()!)
+            .When(x => x.TemplateLayout != null);
+
+        // Validate legacy Layout (for backward compatibility)
+        RuleFor(x => x.Layout)
+            .SetValidator(new LayoutNodeValidator()!)
+            .When(x => x.Layout != null && x.TemplateLayout == null);
+
+        // Also validate component properties for legacy Layout
         RuleFor(x => x.Layout)
             .SetValidator(new ComponentPropertyValidator()!)
-            .When(x => x.Layout != null);
+            .When(x => x.Layout != null && x.TemplateLayout == null);
 
         // Validate Data object structure
         RuleFor(x => x.Data)
@@ -75,10 +89,10 @@ public sealed class GeneratePdfRequestValidator : AbstractValidator<GeneratePdfR
                 }
             );
 
-        // Validate PageSettings
+        // Validate legacy PageSettings (when not using TemplateLayout)
         RuleFor(x => x.PageSettings)
             .SetValidator(new PageSettingsValidator()!)
-            .When(x => x.PageSettings != null);
+            .When(x => x.PageSettings != null && x.TemplateLayout == null);
 
         // Validate Filename
         RuleFor(x => x.Filename)
@@ -331,6 +345,38 @@ public sealed class PageSettingsValidator : AbstractValidator<PageSettingsDto>
             .MaximumLength(100)
             .WithMessage("Page number format cannot exceed 100 characters")
             .When(x => !string.IsNullOrEmpty(x.PageNumberFormat));
+
+        // Header height validation
+        RuleFor(x => x.HeaderHeight)
+            .InclusiveBetween(0f, 500f)
+            .WithMessage("HeaderHeight must be between 0 and 500 points")
+            .When(x => x.HeaderHeight.HasValue);
+
+        RuleFor(x => x.MinHeaderHeight)
+            .InclusiveBetween(0f, 500f)
+            .WithMessage("MinHeaderHeight must be between 0 and 500 points")
+            .When(x => x.MinHeaderHeight.HasValue);
+
+        RuleFor(x => x.MaxHeaderHeight)
+            .InclusiveBetween(0f, 500f)
+            .WithMessage("MaxHeaderHeight must be between 0 and 500 points")
+            .When(x => x.MaxHeaderHeight.HasValue);
+
+        // Footer height validation
+        RuleFor(x => x.FooterHeight)
+            .InclusiveBetween(0f, 500f)
+            .WithMessage("FooterHeight must be between 0 and 500 points")
+            .When(x => x.FooterHeight.HasValue);
+
+        RuleFor(x => x.MinFooterHeight)
+            .InclusiveBetween(0f, 500f)
+            .WithMessage("MinFooterHeight must be between 0 and 500 points")
+            .When(x => x.MinFooterHeight.HasValue);
+
+        RuleFor(x => x.MaxFooterHeight)
+            .InclusiveBetween(0f, 500f)
+            .WithMessage("MaxFooterHeight must be between 0 and 500 points")
+            .When(x => x.MaxFooterHeight.HasValue);
     }
 
     private static bool BeValidPageSize(string? value)
@@ -449,5 +495,143 @@ public sealed class ValidateLayoutRequestValidator : AbstractValidator<ValidateL
         RuleFor(x => x.Layout)
             .SetValidator(new ComponentPropertyValidator()!)
             .When(x => x.Layout != null);
+    }
+}
+
+/// <summary>
+/// Validator for TemplateLayoutDto.
+/// Validates the complete template layout structure including header, content, footer,
+/// background, and foreground slots.
+/// </summary>
+public sealed class TemplateLayoutValidator : AbstractValidator<TemplateLayoutDto>
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TemplateLayoutValidator"/> class.
+    /// </summary>
+    public TemplateLayoutValidator()
+    {
+        // Content is required
+        RuleFor(x => x.Content)
+            .NotNull()
+            .WithMessage("Content layout tree is required in TemplateLayout");
+
+        // Validate Content layout node
+        RuleFor(x => x.Content)
+            .SetValidator(new LayoutNodeValidator()!)
+            .When(x => x.Content != null);
+
+        // Validate Content component properties
+        RuleFor(x => x.Content)
+            .SetValidator(new ComponentPropertyValidator()!)
+            .When(x => x.Content != null);
+
+        // Validate Header layout node (optional)
+        RuleFor(x => x.Header)
+            .SetValidator(new LayoutNodeValidator()!)
+            .When(x => x.Header != null);
+
+        // Validate Header component properties
+        RuleFor(x => x.Header)
+            .SetValidator(new ComponentPropertyValidator()!)
+            .When(x => x.Header != null);
+
+        // Validate Footer layout node (optional)
+        RuleFor(x => x.Footer)
+            .SetValidator(new LayoutNodeValidator()!)
+            .When(x => x.Footer != null);
+
+        // Validate Footer component properties
+        RuleFor(x => x.Footer)
+            .SetValidator(new ComponentPropertyValidator()!)
+            .When(x => x.Footer != null);
+
+        // Validate Background layout node (optional)
+        RuleFor(x => x.Background)
+            .SetValidator(new LayoutNodeValidator()!)
+            .When(x => x.Background != null);
+
+        // Validate Background component properties
+        RuleFor(x => x.Background)
+            .SetValidator(new ComponentPropertyValidator()!)
+            .When(x => x.Background != null);
+
+        // Validate Foreground layout node (optional)
+        RuleFor(x => x.Foreground)
+            .SetValidator(new LayoutNodeValidator()!)
+            .When(x => x.Foreground != null);
+
+        // Validate Foreground component properties
+        RuleFor(x => x.Foreground)
+            .SetValidator(new ComponentPropertyValidator()!)
+            .When(x => x.Foreground != null);
+
+        // Validate PageSettings
+        RuleFor(x => x.PageSettings)
+            .SetValidator(new PageSettingsValidator()!)
+            .When(x => x.PageSettings != null);
+
+        // Validate header height consistency
+        RuleFor(x => x)
+            .Custom(
+                (layout, context) =>
+                {
+                    if (layout.PageSettings == null)
+                        return;
+
+                    // If header height is specified but no header is provided, warn
+                    if (
+                        layout.PageSettings.HeaderHeight.HasValue
+                        && layout.PageSettings.HeaderHeight.Value > 0
+                        && layout.Header == null
+                    )
+                    {
+                        context.AddFailure(
+                            "Header",
+                            "HeaderHeight is specified in PageSettings but no Header layout is provided"
+                        );
+                    }
+
+                    // If footer height is specified but no footer is provided, warn
+                    if (
+                        layout.PageSettings.FooterHeight.HasValue
+                        && layout.PageSettings.FooterHeight.Value > 0
+                        && layout.Footer == null
+                    )
+                    {
+                        context.AddFailure(
+                            "Footer",
+                            "FooterHeight is specified in PageSettings but no Footer layout is provided"
+                        );
+                    }
+
+                    // Validate min/max header height consistency
+                    if (
+                        layout.PageSettings.MinHeaderHeight.HasValue
+                        && layout.PageSettings.MaxHeaderHeight.HasValue
+                        && layout.PageSettings.MinHeaderHeight.Value
+                            > layout.PageSettings.MaxHeaderHeight.Value
+                    )
+                    {
+                        context.AddFailure(
+                            "PageSettings",
+                            "MinHeaderHeight cannot be greater than MaxHeaderHeight"
+                        );
+                    }
+
+                    // Validate min/max footer height consistency
+                    if (
+                        layout.PageSettings.MinFooterHeight.HasValue
+                        && layout.PageSettings.MaxFooterHeight.HasValue
+                        && layout.PageSettings.MinFooterHeight.Value
+                            > layout.PageSettings.MaxFooterHeight.Value
+                    )
+                    {
+                        context.AddFailure(
+                            "PageSettings",
+                            "MinFooterHeight cannot be greater than MaxFooterHeight"
+                        );
+                    }
+                }
+            );
     }
 }

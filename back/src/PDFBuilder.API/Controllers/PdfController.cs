@@ -52,6 +52,7 @@ public class PdfController(
     [SwaggerOperation(
         Summary = "Generate PDF from JSON layout",
         Description = "Generates a PDF document from a JSON layout definition and optional data context. "
+            + "Supports full template layout with header, content, footer, background, and foreground slots. "
             + "The layout defines the structure and styling of the PDF, while the data context "
             + "provides values for dynamic expressions (e.g., {{ data.customer.name }})."
     )]
@@ -68,18 +69,16 @@ public class PdfController(
         var correlationId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
 
         _logger.LogInformation(
-            "PDF generation request received. CorrelationId: {CorrelationId}, HasData: {HasData}",
+            "PDF generation request received. CorrelationId: {CorrelationId}, HasData: {HasData}, HasTemplateLayout: {HasTemplateLayout}",
             correlationId,
-            request.Data.HasValue
+            request.Data.HasValue,
+            request.TemplateLayout is not null
         );
 
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            // Map DTO to domain model
-            var layout = _mapper.Map<LayoutNode>(request.Layout);
-
             // Convert JsonElement to object for expression evaluation
             object? data = request.Data.HasValue
                 ? System.Text.Json.JsonSerializer.Deserialize<object>(request.Data.Value)
@@ -88,13 +87,44 @@ public class PdfController(
             // Build PDF generation options
             var options = BuildGenerationOptions(request);
 
-            // Generate PDF
-            var pdfBytes = await _pdfGenerator.GeneratePdfAsync(
-                layout,
-                data,
-                options,
-                cancellationToken
-            );
+            byte[] pdfBytes;
+
+            // Check if using full template layout (header/footer/content) or legacy single layout
+            var effectiveTemplateLayout = request.GetEffectiveTemplateLayout();
+
+            if (effectiveTemplateLayout is not null)
+            {
+                // Map DTO to domain model using full template layout
+                var templateLayout = _mapper.Map<TemplateLayout>(effectiveTemplateLayout);
+
+                _logger.LogDebug(
+                    "Using TemplateLayout with HasHeader: {HasHeader}, HasFooter: {HasFooter}, HasBackground: {HasBackground}, HasForeground: {HasForeground}",
+                    templateLayout.HasHeader,
+                    templateLayout.HasFooter,
+                    templateLayout.HasBackground,
+                    templateLayout.HasForeground
+                );
+
+                // Generate PDF using the new TemplateLayout-based method
+                pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
+                    templateLayout,
+                    data,
+                    options,
+                    cancellationToken
+                );
+            }
+            else
+            {
+                // Fallback to legacy single layout (backward compatibility)
+                var layout = _mapper.Map<LayoutNode>(request.Layout);
+
+                pdfBytes = await _pdfGenerator.GeneratePdfAsync(
+                    layout,
+                    data,
+                    options,
+                    cancellationToken
+                );
+            }
 
             stopwatch.Stop();
 
@@ -146,7 +176,8 @@ public class PdfController(
     [SwaggerOperation(
         Summary = "Generate PDF and return metadata",
         Description = "Generates a PDF document but returns only metadata (file size, page count, generation time) "
-            + "without the actual PDF bytes. Useful for validation, testing, or preview purposes."
+            + "without the actual PDF bytes. Supports full template layout with header/footer/content. "
+            + "Useful for validation, testing, or preview purposes."
     )]
     [SwaggerResponse(200, "PDF metadata generated successfully", typeof(PdfGenerationResponse))]
     [SwaggerResponse(400, "Invalid request or validation failure", typeof(ProblemDetails))]
@@ -161,17 +192,15 @@ public class PdfController(
         var correlationId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
 
         _logger.LogInformation(
-            "PDF metadata generation request received. CorrelationId: {CorrelationId}",
-            correlationId
+            "PDF metadata generation request received. CorrelationId: {CorrelationId}, HasTemplateLayout: {HasTemplateLayout}",
+            correlationId,
+            request.TemplateLayout is not null
         );
 
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            // Map DTO to domain model
-            var layout = _mapper.Map<LayoutNode>(request.Layout);
-
             // Convert JsonElement to object for expression evaluation
             object? data = request.Data.HasValue
                 ? System.Text.Json.JsonSerializer.Deserialize<object>(request.Data.Value)
@@ -180,13 +209,36 @@ public class PdfController(
             // Build PDF generation options
             var options = BuildGenerationOptions(request);
 
-            // Generate PDF
-            var pdfBytes = await _pdfGenerator.GeneratePdfAsync(
-                layout,
-                data,
-                options,
-                cancellationToken
-            );
+            byte[] pdfBytes;
+
+            // Check if using full template layout or legacy single layout
+            var effectiveTemplateLayout = request.GetEffectiveTemplateLayout();
+
+            if (effectiveTemplateLayout is not null)
+            {
+                // Map DTO to domain model using full template layout
+                var templateLayout = _mapper.Map<TemplateLayout>(effectiveTemplateLayout);
+
+                // Generate PDF using the new TemplateLayout-based method
+                pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
+                    templateLayout,
+                    data,
+                    options,
+                    cancellationToken
+                );
+            }
+            else
+            {
+                // Fallback to legacy single layout
+                var layout = _mapper.Map<LayoutNode>(request.Layout);
+
+                pdfBytes = await _pdfGenerator.GeneratePdfAsync(
+                    layout,
+                    data,
+                    options,
+                    cancellationToken
+                );
+            }
 
             stopwatch.Stop();
 
@@ -246,6 +298,7 @@ public class PdfController(
     [SwaggerOperation(
         Summary = "Generate PDF with progress reporting",
         Description = "Generates a PDF document and reports progress via SignalR. "
+            + "Supports full template layout with header/footer/content. "
             + "Connect to /hubs/progress and subscribe to the operationId to receive real-time updates."
     )]
     [SwaggerResponse(200, "PDF generation started", typeof(PdfGenerationResponse))]
@@ -263,9 +316,10 @@ public class PdfController(
         var effectiveOperationId = operationId ?? _progressReporter.GenerateOperationId();
 
         _logger.LogInformation(
-            "PDF generation with progress started. CorrelationId: {CorrelationId}, OperationId: {OperationId}",
+            "PDF generation with progress started. CorrelationId: {CorrelationId}, OperationId: {OperationId}, HasTemplateLayout: {HasTemplateLayout}",
             correlationId,
-            effectiveOperationId
+            effectiveOperationId,
+            request.TemplateLayout is not null
         );
 
         var stopwatch = Stopwatch.StartNew();
@@ -288,8 +342,6 @@ public class PdfController(
                 stopwatch.ElapsedMilliseconds,
                 cancellationToken
             );
-
-            var layout = _mapper.Map<LayoutNode>(request.Layout);
 
             // Convert JsonElement to object for expression evaluation
             await _progressReporter.ReportProgressAsync(
@@ -324,12 +376,36 @@ public class PdfController(
                 cancellationToken
             );
 
-            var pdfBytes = await _pdfGenerator.GeneratePdfAsync(
-                layout,
-                data,
-                options,
-                cancellationToken
-            );
+            byte[] pdfBytes;
+
+            // Check if using full template layout or legacy single layout
+            var effectiveTemplateLayout = request.GetEffectiveTemplateLayout();
+
+            if (effectiveTemplateLayout is not null)
+            {
+                // Map DTO to domain model using full template layout
+                var templateLayout = _mapper.Map<TemplateLayout>(effectiveTemplateLayout);
+
+                // Generate PDF using the new TemplateLayout-based method
+                pdfBytes = await _pdfGenerator.GeneratePdfFromTemplateLayoutAsync(
+                    templateLayout,
+                    data,
+                    options,
+                    cancellationToken
+                );
+            }
+            else
+            {
+                // Fallback to legacy single layout
+                var layout = _mapper.Map<LayoutNode>(request.Layout);
+
+                pdfBytes = await _pdfGenerator.GeneratePdfAsync(
+                    layout,
+                    data,
+                    options,
+                    cancellationToken
+                );
+            }
 
             stopwatch.Stop();
 

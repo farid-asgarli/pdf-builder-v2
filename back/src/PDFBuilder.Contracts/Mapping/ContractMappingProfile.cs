@@ -22,6 +22,12 @@ public class ContractMappingProfile : Profile
 
         // Template <-> TemplateDto
         CreateTemplateMappings();
+
+        // PageSettings <-> PageSettingsDto
+        CreatePageSettingsMappings();
+
+        // TemplateLayout <-> TemplateLayoutDto
+        CreateTemplateLayoutMappings();
     }
 
     private void CreateLayoutNodeMappings()
@@ -122,6 +128,63 @@ public class ContractMappingProfile : Profile
         CreateMap<TemplateDto, Template>()
             .ForMember(dest => dest.LayoutJson, opt => opt.Ignore()) // Requires serialization
             .ForMember(dest => dest.MetadataJson, opt => opt.Ignore()); // Requires serialization
+    }
+
+    private void CreatePageSettingsMappings()
+    {
+        // Domain -> DTO
+        CreateMap<PageSettings, PageSettingsDto>()
+            .ForMember(
+                dest => dest.Orientation,
+                opt => opt.MapFrom(src => src.Orientation.ToString())
+            )
+            .ForMember(
+                dest => dest.ContentDirection,
+                opt =>
+                    opt.MapFrom(src =>
+                        src.ContentDirection == ContentDirection.RightToLeft ? "RTL" : "LTR"
+                    )
+            )
+            .ForMember(
+                dest => dest.ContinuousMode,
+                opt => opt.MapFrom(src => src.ContinuousMode ? true : (bool?)null)
+            );
+
+        // DTO -> Domain
+        CreateMap<PageSettingsDto, PageSettings>()
+            .ForMember(dest => dest.Orientation, opt => opt.MapFrom<PageOrientationResolver>())
+            .ForMember(
+                dest => dest.ContentDirection,
+                opt => opt.MapFrom<ContentDirectionResolver>()
+            )
+            .ForMember(
+                dest => dest.ContinuousMode,
+                opt => opt.MapFrom(src => src.ContinuousMode ?? false)
+            );
+    }
+
+    private void CreateTemplateLayoutMappings()
+    {
+        // Domain -> DTO
+        CreateMap<TemplateLayout, TemplateLayoutDto>()
+            .ForMember(dest => dest.PageSettings, opt => opt.MapFrom(src => src.PageSettings))
+            .ForMember(dest => dest.Header, opt => opt.MapFrom(src => src.Header))
+            .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
+            .ForMember(dest => dest.Footer, opt => opt.MapFrom(src => src.Footer))
+            .ForMember(dest => dest.Background, opt => opt.MapFrom(src => src.Background))
+            .ForMember(dest => dest.Foreground, opt => opt.MapFrom(src => src.Foreground));
+
+        // DTO -> Domain
+        CreateMap<TemplateLayoutDto, TemplateLayout>()
+            .ForMember(
+                dest => dest.PageSettings,
+                opt => opt.MapFrom(src => src.PageSettings ?? new PageSettingsDto())
+            )
+            .ForMember(dest => dest.Header, opt => opt.MapFrom(src => src.Header))
+            .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
+            .ForMember(dest => dest.Footer, opt => opt.MapFrom(src => src.Footer))
+            .ForMember(dest => dest.Background, opt => opt.MapFrom(src => src.Background))
+            .ForMember(dest => dest.Foreground, opt => opt.MapFrom(src => src.Foreground));
     }
 }
 
@@ -341,5 +404,62 @@ public class VerticalAlignmentResolver
         }
 
         return null;
+    }
+}
+
+/// <summary>
+/// Resolver for converting string to PageOrientation enum.
+/// </summary>
+public class PageOrientationResolver
+    : IValueResolver<PageSettingsDto, PageSettings, PageOrientation>
+{
+    /// <summary>
+    /// Resolves the page orientation from string to enum.
+    /// </summary>
+    public PageOrientation Resolve(
+        PageSettingsDto source,
+        PageSettings destination,
+        PageOrientation destMember,
+        ResolutionContext context
+    )
+    {
+        if (string.IsNullOrWhiteSpace(source.Orientation))
+        {
+            return PageOrientation.Portrait; // Default
+        }
+
+        if (Enum.TryParse<PageOrientation>(source.Orientation, ignoreCase: true, out var result))
+        {
+            return result;
+        }
+
+        return PageOrientation.Portrait;
+    }
+}
+
+/// <summary>
+/// Resolver for converting string to ContentDirection enum.
+/// </summary>
+public class ContentDirectionResolver
+    : IValueResolver<PageSettingsDto, PageSettings, ContentDirection>
+{
+    /// <summary>
+    /// Resolves the content direction from string to enum.
+    /// </summary>
+    public ContentDirection Resolve(
+        PageSettingsDto source,
+        PageSettings destination,
+        ContentDirection destMember,
+        ResolutionContext context
+    )
+    {
+        if (string.IsNullOrWhiteSpace(source.ContentDirection))
+        {
+            return ContentDirection.LeftToRight; // Default
+        }
+
+        return source.ContentDirection.Equals("RTL", StringComparison.OrdinalIgnoreCase)
+            ? ContentDirection.RightToLeft
+            : ContentDirection.LeftToRight;
     }
 }

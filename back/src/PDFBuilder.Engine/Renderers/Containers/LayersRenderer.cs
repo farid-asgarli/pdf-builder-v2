@@ -12,30 +12,92 @@ namespace PDFBuilder.Engine.Renderers.Containers;
 /// Supports background layers (underneath), primary layer (main content), and foreground layers (on top).
 /// </summary>
 /// <remarks>
-/// QuestPDF Layers API: container.Layers(layers => { layers.Layer()..., layers.PrimaryLayer()... })
+/// <para>
+/// <b>QuestPDF Layers API:</b>
+/// <code>
+/// container.Layers(layers => { layers.Layer()..., layers.PrimaryLayer()... })
+/// </code>
+/// </para>
 ///
-/// Properties:
-/// - (none at container level)
+/// <para>
+/// <b>Component-Level vs Page-Level Backgrounds/Foregrounds:</b>
+/// </para>
+/// <para>
+/// This Layers component provides <b>component-level</b> layering, which is distinct from the
+/// page-level Background/Foreground slots in <see cref="PDFBuilder.Core.Domain.TemplateLayout"/>:
+/// </para>
+/// <list type="table">
+///   <listheader>
+///     <term>Feature</term>
+///     <description>Layers Component | TemplateLayout Background/Foreground</description>
+///   </listheader>
+///   <item>
+///     <term>Scope</term>
+///     <description>Local to the component | Full page (ignores margins)</description>
+///   </item>
+///   <item>
+///     <term>Size</term>
+///     <description>Determined by primary layer | Full page dimensions</description>
+///   </item>
+///   <item>
+///     <term>Nesting</term>
+///     <description>Can be nested within other components | Only at page root level</description>
+///   </item>
+///   <item>
+///     <term>Use Case</term>
+///     <description>Cards with backgrounds, local watermarks | Page watermarks, full-page backgrounds</description>
+///   </item>
+/// </list>
 ///
-/// Children:
-/// - Each child should be a Layer with an optional "isPrimary" property
-/// - Exactly one child must have isPrimary=true to define the primary layer
-/// - The primary layer determines the container's size and supports paging
-/// - Other layers are drawn in order of appearance (first = bottommost)
+/// <para>
+/// <b>Behavior:</b>
+/// </para>
+/// <list type="bullet">
+///   <item>Exactly one child must be marked as the primary layer (isPrimary=true)</item>
+///   <item>The primary layer determines the container's size and supports paging</item>
+///   <item>Other layers are drawn in order of appearance (first = bottommost)</item>
+///   <item>All layers repeat on each page when content paginates</item>
+/// </list>
 ///
-/// Child Properties (on each layer child node):
-/// - isPrimary (bool): If true, this is the primary content layer. Default: false
+/// <para>
+/// <b>Properties (on container):</b> None
+/// </para>
 ///
-/// Order of children determines z-order:
-/// - Children appear in the order they are defined
-/// - Use isPrimary on one child to designate it as the main content layer
-/// - Non-primary layers before the primary layer appear underneath
-/// - Non-primary layers after the primary layer appear on top
+/// <para>
+/// <b>Child Properties (on each layer child node):</b>
+/// </para>
+/// <list type="bullet">
+///   <item><b>isPrimary</b> (bool): If true, this is the primary content layer. Default: false</item>
+/// </list>
 ///
-/// Common use cases:
-/// - Background images behind content
-/// - Watermarks on top of content
-/// - Decorative elements layered with text
+/// <para>
+/// <b>Z-Order:</b>
+/// Children appear in the order they are defined:
+/// </para>
+/// <list type="bullet">
+///   <item>Non-primary layers before the primary layer appear underneath (background)</item>
+///   <item>Non-primary layers after the primary layer appear on top (foreground/watermark)</item>
+/// </list>
+///
+/// <para>
+/// <b>Common use cases:</b>
+/// </para>
+/// <list type="bullet">
+///   <item>Cards or panels with background images/colors</item>
+///   <item>Content with decorative overlays</item>
+///   <item>Local watermarks on specific sections</item>
+///   <item>Layered graphics with text</item>
+/// </list>
+///
+/// <para>
+/// <b>When to use TemplateLayout.Background/Foreground instead:</b>
+/// </para>
+/// <list type="bullet">
+///   <item>Full-page watermarks (e.g., "DRAFT", "CONFIDENTIAL")</item>
+///   <item>Page backgrounds that extend edge-to-edge</item>
+///   <item>Security overlays that cover the entire page</item>
+///   <item>Decorative page borders</item>
+/// </list>
 /// </remarks>
 /// <remarks>
 /// Initializes a new instance of the <see cref="LayersRenderer"/> class.

@@ -8,6 +8,7 @@
  * - Real-time two-way binding with debounce
  * - Validation and character limits
  * - Placeholder and help text
+ * - Expression preview showing resolved values with test data
  */
 "use client";
 
@@ -22,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ExpressionPreview } from "./ExpressionPreview";
 
 // ============================================================================
 // Types
@@ -69,6 +71,8 @@ export interface TextFieldProps {
   pattern?: RegExp;
   /** Custom validation error message */
   patternError?: string;
+  /** Whether to show expression preview with resolved values (default: true when supportsExpression is true) */
+  showExpressionPreview?: boolean;
 }
 
 // ============================================================================
@@ -137,6 +141,7 @@ export function TextField({
   error,
   pattern,
   patternError,
+  showExpressionPreview,
 }: TextFieldProps) {
   // Local editing state - only used while focused and typing
   const [editingValue, setEditingValue] = useState<string | null>(null);
@@ -347,6 +352,17 @@ export function TextField({
           Use {"{{ expression }}"} for dynamic values
         </p>
       )}
+
+      {/* Expression preview - shows resolved value from test data */}
+      {supportsExpression &&
+        hasExpression &&
+        (showExpressionPreview ?? true) && (
+          <ExpressionPreview
+            value={value}
+            maxLength={multiline ? 100 : 50}
+            variant="block"
+          />
+        )}
 
       {/* Help text */}
       {helpText && !displayError && (

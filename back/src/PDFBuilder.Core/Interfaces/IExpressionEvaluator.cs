@@ -105,6 +105,25 @@ public interface IExpressionEvaluator
     /// <returns>An enumerable of objects from the collection.</returns>
     /// <exception cref="ExpressionEvaluationException">Thrown when the expression doesn't return an enumerable.</exception>
     IEnumerable<object?> EvaluateCollection(string expression, RenderContext context);
+
+    /// <summary>
+    /// Checks if a string contains any page context expressions that require
+    /// QuestPDF native handling (e.g., currentPage, totalPages).
+    /// These expressions cannot be pre-evaluated and must use QuestPDF's
+    /// text.CurrentPageNumber() and text.TotalPages() methods.
+    /// </summary>
+    /// <param name="input">The string to check.</param>
+    /// <returns>True if the string contains page context expressions; otherwise, false.</returns>
+    bool ContainsPageContextExpressions(string? input);
+
+    /// <summary>
+    /// Parses a text segment to extract static text and page context expressions.
+    /// This is used by TextRenderer to properly handle page numbers with QuestPDF.
+    /// </summary>
+    /// <param name="input">The input string containing expressions.</param>
+    /// <param name="context">The render context for evaluating non-page expressions.</param>
+    /// <returns>A collection of text segments, some static and some requiring QuestPDF page methods.</returns>
+    IEnumerable<TextSegment> ParseTextWithPageContext(string input, RenderContext context);
 }
 
 /// <summary>
@@ -164,4 +183,62 @@ public class ExpressionValidationResult
             ErrorMessage = errorMessage,
             ErrorPosition = errorPosition,
         };
+}
+
+/// <summary>
+/// Represents a segment of text that has been parsed for page context expressions.
+/// Used by TextRenderer to mix static text with QuestPDF page number methods.
+/// </summary>
+public sealed class TextSegment
+{
+    /// <summary>
+    /// Gets or sets the type of text segment.
+    /// </summary>
+    public TextSegmentType Type { get; init; } = TextSegmentType.StaticText;
+
+    /// <summary>
+    /// Gets or sets the text content for static text segments.
+    /// </summary>
+    public string? Text { get; init; }
+
+    /// <summary>
+    /// Gets or sets the page context expression for dynamic segments.
+    /// </summary>
+    public PageContextExpression? PageContext { get; init; }
+
+    /// <summary>
+    /// Creates a static text segment.
+    /// </summary>
+    /// <param name="text">The static text content.</param>
+    public static TextSegment Static(string text) => new()
+    {
+        Type = TextSegmentType.StaticText,
+        Text = text,
+    };
+
+    /// <summary>
+    /// Creates a page context segment.
+    /// </summary>
+    /// <param name="pageContext">The page context expression.</param>
+    public static TextSegment PageContextSegment(PageContextExpression pageContext) => new()
+    {
+        Type = TextSegmentType.PageContext,
+        PageContext = pageContext,
+    };
+}
+
+/// <summary>
+/// Type of text segment in parsed text output.
+/// </summary>
+public enum TextSegmentType
+{
+    /// <summary>
+    /// Static text that can be rendered directly.
+    /// </summary>
+    StaticText = 0,
+
+    /// <summary>
+    /// Page context expression that requires QuestPDF native methods.
+    /// </summary>
+    PageContext = 1,
 }

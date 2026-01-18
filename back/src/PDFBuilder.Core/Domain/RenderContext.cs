@@ -20,6 +20,8 @@ public class RenderContext
         _scopeStack = new Stack<Dictionary<string, object?>>();
         PageInfo = new PageInfo();
         DocumentInfo = new DocumentInfo();
+        TemplateInfo = new TemplateInfo();
+        SectionInfo = new SectionInfo();
     }
 
     /// <summary>
@@ -44,6 +46,18 @@ public class RenderContext
     /// Gets the document-level information.
     /// </summary>
     public DocumentInfo DocumentInfo { get; }
+
+    /// <summary>
+    /// Gets the template metadata information.
+    /// Accessible via {{ template.* }} expressions (e.g., {{ template.title }}, {{ template.createdDate }}).
+    /// </summary>
+    public TemplateInfo TemplateInfo { get; }
+
+    /// <summary>
+    /// Gets the current section information.
+    /// Accessible via {{ section.* }} expressions (e.g., {{ section.name }}).
+    /// </summary>
+    public SectionInfo SectionInfo { get; }
 
     /// <summary>
     /// Gets or sets the inherited style from parent nodes.
@@ -226,10 +240,17 @@ public class RenderContext
         // Add built-in variables
         result["page"] = PageInfo;
         result["document"] = DocumentInfo;
+        result["template"] = TemplateInfo;
+        result["section"] = SectionInfo;
         result["isFirst"] = IsFirstIteration;
         result["isLast"] = IsLastIteration;
         result["repeatIndex"] = RepeatIndex;
         result["repeatCount"] = RepeatCount;
+
+        // Add convenience aliases for page context variables
+        // These allow direct access like {{ currentPage }} instead of {{ page.CurrentPage }}
+        result["currentPage"] = PageInfo.CurrentPage;
+        result["totalPages"] = PageInfo.TotalPages;
 
         return result;
     }
@@ -256,9 +277,11 @@ public class RenderContext
             childContext._variables[kvp.Key] = kvp.Value;
         }
 
-        // Copy page and document info references
+        // Copy page, document, template, and section info references
         childContext.PageInfo.CopyFrom(PageInfo);
         childContext.DocumentInfo.CopyFrom(DocumentInfo);
+        childContext.TemplateInfo.CopyFrom(TemplateInfo);
+        childContext.SectionInfo.CopyFrom(SectionInfo);
 
         return childContext;
     }
@@ -294,9 +317,11 @@ public class RenderContext
             );
         }
 
-        // Copy page and document info
+        // Copy page, document, template, and section info
         cloned.PageInfo.CopyFrom(PageInfo);
         cloned.DocumentInfo.CopyFrom(DocumentInfo);
+        cloned.TemplateInfo.CopyFrom(TemplateInfo);
+        cloned.SectionInfo.CopyFrom(SectionInfo);
 
         return cloned;
     }
@@ -344,6 +369,8 @@ public class RenderContext
 
         PageInfo.Reset();
         DocumentInfo.Reset();
+        TemplateInfo.Reset();
+        SectionInfo.Reset();
     }
 
     /// <summary>
@@ -553,6 +580,143 @@ public class DocumentInfo
         TemplateId = null;
         TemplateName = null;
         Metadata = null;
+    }
+}
+
+/// <summary>
+/// Contains template-level metadata information for expression evaluation.
+/// This provides access to template properties via {{ template.* }} expressions.
+/// </summary>
+public class TemplateInfo
+{
+    /// <summary>
+    /// Gets or sets the template title/name.
+    /// Accessible via {{ template.title }} expression.
+    /// </summary>
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Gets or sets the template description.
+    /// Accessible via {{ template.description }} expression.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Gets or sets the template creation date.
+    /// Accessible via {{ template.createdDate }} expression.
+    /// </summary>
+    public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the template last update date.
+    /// Accessible via {{ template.updatedDate }} expression.
+    /// </summary>
+    public DateTime UpdatedDate { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Gets or sets the template version.
+    /// Accessible via {{ template.version }} expression.
+    /// </summary>
+    public int Version { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets the template category.
+    /// Accessible via {{ template.category }} expression.
+    /// </summary>
+    public string? Category { get; set; }
+
+    /// <summary>
+    /// Gets or sets the template author.
+    /// Accessible via {{ template.author }} expression.
+    /// </summary>
+    public string? Author { get; set; }
+
+    /// <summary>
+    /// Copies values from another TemplateInfo instance.
+    /// </summary>
+    /// <param name="other">The source to copy from.</param>
+    public void CopyFrom(TemplateInfo other)
+    {
+        Title = other.Title;
+        Description = other.Description;
+        CreatedDate = other.CreatedDate;
+        UpdatedDate = other.UpdatedDate;
+        Version = other.Version;
+        Category = other.Category;
+        Author = other.Author;
+    }
+
+    /// <summary>
+    /// Resets TemplateInfo to default values for object pooling.
+    /// </summary>
+    public void Reset()
+    {
+        Title = null;
+        Description = null;
+        CreatedDate = DateTime.UtcNow;
+        UpdatedDate = DateTime.UtcNow;
+        Version = 1;
+        Category = null;
+        Author = null;
+    }
+}
+
+/// <summary>
+/// Contains section-related information for expression evaluation and page numbering.
+/// This provides access to section context via {{ section.* }} expressions.
+/// </summary>
+public class SectionInfo
+{
+    /// <summary>
+    /// Gets or sets the current section name.
+    /// Accessible via {{ section.name }} expression.
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// Gets or sets the current section title (display name).
+    /// Accessible via {{ section.title }} expression.
+    /// </summary>
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Gets or sets the section nesting level (0 = top level).
+    /// Accessible via {{ section.level }} expression.
+    /// </summary>
+    public int Level { get; set; }
+
+    /// <summary>
+    /// Gets or sets the section index within its parent (0-based).
+    /// Accessible via {{ section.index }} expression.
+    /// </summary>
+    public int Index { get; set; }
+
+    /// <summary>
+    /// Gets whether the section has a name defined.
+    /// </summary>
+    public bool HasSection => !string.IsNullOrEmpty(Name);
+
+    /// <summary>
+    /// Copies values from another SectionInfo instance.
+    /// </summary>
+    /// <param name="other">The source to copy from.</param>
+    public void CopyFrom(SectionInfo other)
+    {
+        Name = other.Name;
+        Title = other.Title;
+        Level = other.Level;
+        Index = other.Index;
+    }
+
+    /// <summary>
+    /// Resets SectionInfo to default values for object pooling.
+    /// </summary>
+    public void Reset()
+    {
+        Name = null;
+        Title = null;
+        Level = 0;
+        Index = 0;
     }
 }
 

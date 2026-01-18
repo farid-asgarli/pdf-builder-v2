@@ -183,6 +183,12 @@ export function useAutoSave(options: UseAutoSaveOptions): UseAutoSaveReturn {
   // Build update request from template
   const buildUpdateRequest = useCallback(
     (tmpl: Template): UpdateTemplateRequest => {
+      // Build metadata object, including testData if present
+      const metadata: Record<string, unknown> = {};
+      if (tmpl.testData && Object.keys(tmpl.testData).length > 0) {
+        metadata.testData = tmpl.testData;
+      }
+
       return {
         name: tmpl.name,
         description: tmpl.description,
@@ -190,6 +196,8 @@ export function useAutoSave(options: UseAutoSaveOptions): UseAutoSaveReturn {
         tags: tmpl.tags?.join(","),
         layout: toLayoutNodeDto(tmpl.layout),
         isActive: tmpl.status !== "archived",
+        // Include metadata with testData if there's any metadata to save
+        ...(Object.keys(metadata).length > 0 && { metadata }),
       };
     },
     []

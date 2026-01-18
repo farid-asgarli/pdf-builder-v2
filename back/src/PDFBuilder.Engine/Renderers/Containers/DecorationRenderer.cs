@@ -13,25 +13,84 @@ namespace PDFBuilder.Engine.Renderers.Containers;
 /// before (header), content (main), and after (footer).
 /// </summary>
 /// <remarks>
-/// QuestPDF Decoration API: container.Decoration(dec => { dec.Before()..., dec.Content()..., dec.After()... })
+/// <para>
+/// <b>QuestPDF Decoration API:</b>
+/// <code>
+/// container.Decoration(dec => { dec.Before()..., dec.Content()..., dec.After()... })
+/// </code>
+/// </para>
 ///
-/// The Decoration component is designed for repeating headers and footers:
-/// - The 'before' section is rendered above the main content on every page
-/// - The 'content' section is the main content that may span multiple pages
-/// - The 'after' section is rendered below the main content on every page
+/// <para>
+/// <b>Component-Level vs Page-Level Headers/Footers:</b>
+/// </para>
+/// <para>
+/// This Decoration component provides <b>component-level</b> repeating headers and footers,
+/// which are distinct from the page-level Header/Footer slots in <see cref="PDFBuilder.Core.Domain.TemplateLayout"/>:
+/// </para>
+/// <list type="table">
+///   <listheader>
+///     <term>Feature</term>
+///     <description>Decoration Component | TemplateLayout Header/Footer</description>
+///   </listheader>
+///   <item>
+///     <term>Scope</term>
+///     <description>Local to the component | Global to the entire page</description>
+///   </item>
+///   <item>
+///     <term>Position</term>
+///     <description>Within the content flow | Fixed page slots (outside margins)</description>
+///   </item>
+///   <item>
+///     <term>Nesting</term>
+///     <description>Can be nested within other components | Only at page root level</description>
+///   </item>
+///   <item>
+///     <term>Use Case</term>
+///     <description>Table captions, section headers | Company logos, page numbers</description>
+///   </item>
+/// </list>
 ///
-/// Properties:
-/// - before (LayoutNode): Optional. Content to render above the main content, repeated on each page.
-/// - content (LayoutNode): Required. The main content section.
-/// - after (LayoutNode): Optional. Content to render below the main content, repeated on each page.
+/// <para>
+/// <b>Behavior:</b>
+/// </para>
+/// <list type="bullet">
+///   <item>The 'before' section is rendered above the main content on every page the content spans</item>
+///   <item>The 'content' section is the main content that may span multiple pages</item>
+///   <item>The 'after' section is rendered below the main content on every page the content spans</item>
+/// </list>
 ///
-/// Common use cases:
-/// - Table headers that repeat on each page
-/// - Page-level captions or titles
-/// - Footer information that appears on every page
+/// <para>
+/// <b>Properties:</b>
+/// </para>
+/// <list type="bullet">
+///   <item><b>before</b> (LayoutNode): Optional. Content to render above the main content, repeated on each page.</item>
+///   <item><b>content</b> (LayoutNode): Required. The main content section that may paginate.</item>
+///   <item><b>after</b> (LayoutNode): Optional. Content to render below the main content, repeated on each page.</item>
+/// </list>
 ///
-/// Tip: Combine with ShowOnce and SkipOnce components within before/after sections
-/// to vary content between first and subsequent pages.
+/// <para>
+/// <b>Common use cases:</b>
+/// </para>
+/// <list type="bullet">
+///   <item>Table headers that repeat on each page when a table spans multiple pages</item>
+///   <item>Section-level captions or titles</item>
+///   <item>Repeating annotations or notes for long content sections</item>
+/// </list>
+///
+/// <para>
+/// <b>Tip:</b> Combine with ShowOnce and SkipOnce components within before/after sections
+/// to vary content between first and subsequent pages (e.g., "Instructions" vs "Instructions [continued]").
+/// </para>
+///
+/// <para>
+/// <b>When to use TemplateLayout.Header/Footer instead:</b>
+/// </para>
+/// <list type="bullet">
+///   <item>Page numbers (using {{ currentPage }} and {{ totalPages }})</item>
+///   <item>Company branding that appears on every page regardless of content</item>
+///   <item>Legal disclaimers or confidentiality notices</item>
+///   <item>Document-wide headers with title and date</item>
+/// </list>
 /// </remarks>
 /// <remarks>
 /// Initializes a new instance of the <see cref="DecorationRenderer"/> class.

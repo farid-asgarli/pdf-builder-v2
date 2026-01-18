@@ -31,6 +31,10 @@ export interface AutocompleteConfig {
   dataFields: DataField[];
   /** Whether to include built-in functions */
   includeBuiltinFunctions?: boolean;
+  /** Whether to include page context variables (currentPage, totalPages, etc.) */
+  includePageVariables?: boolean;
+  /** Current editing mode - affects page variable suggestions */
+  editingMode?: "content" | "header" | "footer";
   /** Trigger characters for autocomplete */
   triggerCharacters?: string[];
 }
@@ -208,6 +212,60 @@ const BUILTIN_FUNCTIONS: BuiltinFunction[] = [
     signature: "Convert.ToBoolean(value)",
     description: "Converts value to boolean",
     returnType: "boolean",
+  },
+];
+
+/**
+ * Page context variable definition for autocomplete
+ */
+interface PageVariable {
+  name: string;
+  description: string;
+  returnType: string;
+  /** If true, this variable is only available/recommended in header/footer */
+  headerFooterOnly?: boolean;
+}
+
+/**
+ * Page context variables available in expressions
+ * These are variables provided by the backend RenderContext for pagination
+ */
+const PAGE_VARIABLES: PageVariable[] = [
+  {
+    name: "currentPage",
+    description: "Current page number (1-based)",
+    returnType: "number",
+    headerFooterOnly: true,
+  },
+  {
+    name: "totalPages",
+    description: "Total number of pages in the document",
+    returnType: "number",
+    headerFooterOnly: true,
+  },
+  {
+    name: "section.name",
+    description: "Current section name",
+    returnType: "string",
+    headerFooterOnly: false,
+  },
+  {
+    name: "template.title",
+    description: "Document/template title",
+    returnType: "string",
+    headerFooterOnly: false,
+  },
+  {
+    name: "template.createdDate",
+    description: "Template creation date",
+    returnType: "DateTime",
+    headerFooterOnly: false,
+  },
+  {
+    name: "template.updatedDate",
+    description: "Template last update date",
+    returnType: "DateTime",
+    headerFooterOnly: false,
   },
 ];
 
@@ -465,8 +523,14 @@ export function registerExpressionAutocomplete(
   const {
     dataFields,
     includeBuiltinFunctions = true,
+    includePageVariables = true,
+    editingMode = "content",
     triggerCharacters = [".", "{"],
   } = config;
+
+  // Determine if we're in header/footer mode
+  const isHeaderFooterMode =
+    editingMode === "header" || editingMode === "footer";
 
   return monaco.languages.registerCompletionItemProvider(languageId, {
     triggerCharacters,
@@ -531,6 +595,65 @@ export function registerExpressionAutocomplete(
           range,
           sortText: `0_${displayLabel}`, // Prioritize data fields
         });
+      }
+
+      // Add page context variables if enabled and not after a dot (unless it's for section/template)
+      if (
+        includePageVariables &&
+        (!context.isAfterDot ||
+          context.prefix === "section" ||
+          context.prefix === "template")
+      ) {
+        for (const pageVar of PAGE_VARIABLES) {
+          // Check if variable name matches current prefix context
+          if (context.prefix) {
+            // If we have a prefix, only show variables that start with that prefix
+            if (!pageVar.name.startsWith(context.prefix + ".")) continue;
+          }
+
+          // Check if the current word matches the variable name
+          const displayName = context.prefix
+            ? pageVar.name.substring(context.prefix.length + 1)
+            : pageVar.name;
+
+          if (
+            context.word &&
+            !displayName.toLowerCase().startsWith(context.word.toLowerCase())
+          ) {
+            continue;
+          }
+
+          // Calculate sort priority - prioritize page vars in header/footer mode
+          const priorityPrefix = isHeaderFooterMode
+            ? pageVar.headerFooterOnly
+              ? "00" // Highest priority for page-specific vars in header/footer
+              : "01"
+            : pageVar.headerFooterOnly
+              ? "3" // Lower priority for page-specific vars in content mode
+              : "1";
+
+          // Add visual indicator for header/footer only variables
+          const headerFooterBadge = pageVar.headerFooterOnly ? " 📄" : "";
+          const modeHint = pageVar.headerFooterOnly
+            ? "\n\n*Best used in headers/footers*"
+            : "";
+
+          suggestions.push({
+            label: displayName + headerFooterBadge,
+            kind: monaco.languages.CompletionItemKind.Variable,
+            insertText: displayName,
+            detail: `Page: ${pageVar.returnType}`,
+            documentation: {
+              value: `${pageVar.description}${modeHint}\n\n**Returns:** ${pageVar.returnType}`,
+            },
+            range,
+            sortText: `${priorityPrefix}_${displayName}`,
+            // Add a tag to distinguish page variables
+            tags: pageVar.headerFooterOnly
+              ? [monaco.languages.CompletionItemTag.Deprecated] // Visual indicator (strikethrough won't apply, but it marks it)
+              : undefined,
+          });
+        }
       }
 
       // Add built-in functions if enabled and not after a dot with data
@@ -668,6 +791,32 @@ export function registerExpressionHoverProvider(
         };
       }
 
+      // Check for page context variable
+      const pageVar = PAGE_VARIABLES.find(
+        (v) =>
+          v.name === fullPath ||
+          v.name === word.word ||
+          (prefix && v.name === `${prefix}.${word.word}`)
+      );
+      if (pageVar) {
+        const headerFooterNote = pageVar.headerFooterOnly
+          ? "\n\n*📄 Best used in headers/footers for page numbering*"
+          : "";
+        return {
+          range: {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn,
+          },
+          contents: [
+            { value: `**${pageVar.name}** *(Page Context)*` },
+            { value: pageVar.description + headerFooterNote },
+            { value: `Returns: \`${pageVar.returnType}\`` },
+          ],
+        };
+      }
+
       return null;
     },
   });
@@ -677,4 +826,5 @@ export function registerExpressionHoverProvider(
 // Exports
 // ============================================================================
 
-export { BUILTIN_FUNCTIONS, EXPRESSION_KEYWORDS };
+export { BUILTIN_FUNCTIONS, EXPRESSION_KEYWORDS, PAGE_VARIABLES };
+export type { PageVariable };

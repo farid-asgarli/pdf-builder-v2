@@ -607,14 +607,15 @@ public sealed class ComponentRegistry
                 Type = ComponentType.Layers,
                 Name = "Layers",
                 Description =
-                    "Stacking planes for layered content (background, primary, foreground)",
+                    "Stacking planes for layered content (background, primary, foreground). Use for local backgrounds, watermarks, and layered graphics within content. Children can have 'isPrimary=true' to mark the main layer. For page-level backgrounds/foregrounds, use TemplateLayout.Background/Foreground slots instead.",
                 Category = "Container",
                 PriorityTier = 2,
                 SupportsChildren = true,
                 IsWrapper = false,
                 RequiredProperties = [],
                 OptionalProperties = [],
-                QuestPdfApi = "container.Layers(layers => ...)",
+                QuestPdfApi =
+                    "container.Layers(layers => { layers.Layer()...; layers.PrimaryLayer()... })",
             }
         );
 
@@ -623,14 +624,16 @@ public sealed class ComponentRegistry
             {
                 Type = ComponentType.Decoration,
                 Name = "Decoration",
-                Description = "Repeating header/footer with main content area",
+                Description =
+                    "Repeating section headers/footers with main content area. Use 'before' for content above and 'after' for content below main area. These repeat on every page when content spans multiple pages. Note: For page-level headers/footers, use TemplateLayout.Header/Footer slots instead.",
                 Category = "Container",
                 PriorityTier = 2,
-                SupportsChildren = true,
+                SupportsChildren = false, // Uses properties, not children
                 IsWrapper = false,
-                RequiredProperties = [],
-                OptionalProperties = ["header", "footer", "content"],
-                QuestPdfApi = "container.Decoration(dec => ...)",
+                RequiredProperties = ["content"],
+                OptionalProperties = ["before", "after"],
+                QuestPdfApi =
+                    "container.Decoration(dec => { dec.Before()...; dec.Content()...; dec.After()... })",
             }
         );
 

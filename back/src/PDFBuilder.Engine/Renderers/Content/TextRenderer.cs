@@ -120,6 +120,7 @@ public sealed class TextRenderer(
 
     /// <summary>
     /// Renders simple text content with uniform styling.
+    /// Handles page context variables (currentPage, totalPages) using QuestPDF native methods.
     /// </summary>
     private void RenderSimpleText(
         IContainer container,
@@ -128,10 +129,10 @@ public sealed class TextRenderer(
         StyleProperties resolvedStyle
     )
     {
-        // Get content with expression evaluation
-        var content = EvaluateStringProperty(node, PropertyNames.Content, context, string.Empty);
+        // Get raw content (don't evaluate expressions yet - we need to detect page context)
+        var rawContent = node.GetStringProperty(PropertyNames.Content) ?? string.Empty;
 
-        if (string.IsNullOrEmpty(content))
+        if (string.IsNullOrEmpty(rawContent))
         {
             Logger.LogDebug("Text node {NodeId} has empty content", node.Id ?? "unnamed");
             return;
@@ -139,28 +140,144 @@ public sealed class TextRenderer(
 
         Logger.LogTrace(
             "Rendering simple text: '{Content}' (truncated to 50 chars)",
-            content.Length > 50 ? content[..50] + "..." : content
+            rawContent.Length > 50 ? rawContent[..50] + "..." : rawContent
         );
 
-        // Build the text descriptor
+        // Check if we have page context expressions that need QuestPDF native handling
+        var hasPageContext = ExpressionEvaluator.ContainsPageContextExpressions(rawContent);
+
+        if (hasPageContext)
+        {
+            // Use the advanced parsing to handle page context variables
+            RenderTextWithPageContext(container, node, context, resolvedStyle, rawContent);
+        }
+        else
+        {
+            // Standard text rendering with expression evaluation
+            var content = EvaluateStringProperty(node, PropertyNames.Content, context, string.Empty);
+
+            if (string.IsNullOrEmpty(content))
+            {
+                return;
+            }
+
+            container.Text(text =>
+            {
+                ApplyParagraphStyling(text, node, context, resolvedStyle);
+                ApplyDefaultTextStyle(text, node, context, resolvedStyle);
+
+                var span = text.Span(content);
+                ApplyTextDecorations(span, node, context);
+            });
+        }
+    }
+
+    /// <summary>
+    /// Renders text content that contains page context expressions.
+    /// Uses QuestPDF's native CurrentPageNumber() and TotalPages() methods.
+    /// </summary>
+    private void RenderTextWithPageContext(
+        IContainer container,
+        LayoutNode node,
+        RenderContext context,
+        StyleProperties resolvedStyle,
+        string rawContent
+    )
+    {
+        // Parse text into segments (static text vs page context variables)
+        var segments = ExpressionEvaluator.ParseTextWithPageContext(rawContent, context).ToList();
+
+        if (segments.Count == 0)
+        {
+            return;
+        }
+
         container.Text(text =>
         {
-            // Apply paragraph styling
             ApplyParagraphStyling(text, node, context, resolvedStyle);
-
-            // Apply default text style from resolved style
             ApplyDefaultTextStyle(text, node, context, resolvedStyle);
 
-            // Add the content span
-            var span = text.Span(content);
-
-            // Apply text decorations from properties
-            ApplyTextDecorations(span, node, context);
+            foreach (var segment in segments)
+            {
+                if (segment.Type == TextSegmentType.StaticText)
+                {
+                    // Static text - render as regular span
+                    if (!string.IsNullOrEmpty(segment.Text))
+                    {
+                        var span = text.Span(segment.Text);
+                        ApplyTextDecorations(span, node, context);
+                    }
+                }
+                else if (segment.Type == TextSegmentType.PageContext && segment.PageContext is not null)
+                {
+                    // Page context variable - use QuestPDF native methods
+                    RenderPageContextSegment(text, segment.PageContext, node, context);
+                }
+            }
         });
     }
 
     /// <summary>
+    /// Renders a page context segment using QuestPDF's native page number methods.
+    /// </summary>
+    private void RenderPageContextSegment(
+        TextDescriptor text,
+        PageContextExpression pageContext,
+        LayoutNode node,
+        RenderContext context
+    )
+    {
+        // Determine section name - use provided or fall back to current section in context
+        var sectionName = !string.IsNullOrEmpty(pageContext.SectionName)
+            ? pageContext.SectionName
+            : context.SectionInfo.Name ?? context.CurrentSection ?? string.Empty;
+
+        switch (pageContext.Variable)
+        {
+            case PageContextVariable.CurrentPage:
+                var currentPageSpan = text.CurrentPageNumber();
+                ApplyTextDecorations(currentPageSpan, node, context);
+                break;
+
+            case PageContextVariable.TotalPages:
+                var totalPagesSpan = text.TotalPages();
+                ApplyTextDecorations(totalPagesSpan, node, context);
+                break;
+
+            case PageContextVariable.SectionBeginPage when !string.IsNullOrEmpty(sectionName):
+                var beginPageSpan = text.BeginPageNumberOfSection(sectionName);
+                ApplyTextDecorations(beginPageSpan, node, context);
+                break;
+
+            case PageContextVariable.SectionEndPage when !string.IsNullOrEmpty(sectionName):
+                var endPageSpan = text.EndPageNumberOfSection(sectionName);
+                ApplyTextDecorations(endPageSpan, node, context);
+                break;
+
+            case PageContextVariable.PageWithinSection when !string.IsNullOrEmpty(sectionName):
+                var pageWithinSpan = text.PageNumberWithinSection(sectionName);
+                ApplyTextDecorations(pageWithinSpan, node, context);
+                break;
+
+            case PageContextVariable.TotalPagesWithinSection when !string.IsNullOrEmpty(sectionName):
+                var totalWithinSpan = text.TotalPagesWithinSection(sectionName);
+                ApplyTextDecorations(totalWithinSpan, node, context);
+                break;
+
+            default:
+                // Unknown or invalid page context - log and skip
+                Logger.LogWarning(
+                    "Unknown or invalid page context variable: {Variable} with section: {Section}",
+                    pageContext.Variable,
+                    sectionName
+                );
+                break;
+        }
+    }
+
+    /// <summary>
     /// Renders rich text with multiple styled spans.
+    /// Handles page context variables within individual spans.
     /// </summary>
     private void RenderRichText(
         IContainer container,
@@ -190,6 +307,7 @@ public sealed class TextRenderer(
 
     /// <summary>
     /// Renders a single text span with its styling.
+    /// Handles page context variables within the span text.
     /// </summary>
     private void RenderSpan(
         TextDescriptor text,
@@ -198,24 +316,94 @@ public sealed class TextRenderer(
         StyleProperties resolvedStyle
     )
     {
-        // Evaluate the text content
         var spanText = spanDto.Text ?? string.Empty;
-
-        if (ExpressionEvaluator.ContainsExpressions(spanText))
-        {
-            spanText = ExpressionEvaluator.EvaluateString(spanText, context);
-        }
 
         if (string.IsNullOrEmpty(spanText))
         {
             return;
         }
 
-        // Create the span
-        var span = text.Span(spanText);
+        // Check for page context expressions in this span
+        if (ExpressionEvaluator.ContainsPageContextExpressions(spanText))
+        {
+            // Parse and render segments with page context handling
+            var segments = ExpressionEvaluator.ParseTextWithPageContext(spanText, context);
 
-        // Apply span-specific styling (overrides default)
-        ApplySpanStyling(span, spanDto, resolvedStyle);
+            foreach (var segment in segments)
+            {
+                if (segment.Type == TextSegmentType.StaticText)
+                {
+                    if (!string.IsNullOrEmpty(segment.Text))
+                    {
+                        var span = text.Span(segment.Text);
+                        ApplySpanStyling(span, spanDto, resolvedStyle);
+                    }
+                }
+                else if (segment.Type == TextSegmentType.PageContext && segment.PageContext is not null)
+                {
+                    RenderPageContextSegmentWithSpanStyle(text, segment.PageContext, spanDto, context, resolvedStyle);
+                }
+            }
+        }
+        else if (ExpressionEvaluator.ContainsExpressions(spanText))
+        {
+            // Regular expression evaluation
+            spanText = ExpressionEvaluator.EvaluateString(spanText, context);
+
+            if (!string.IsNullOrEmpty(spanText))
+            {
+                var span = text.Span(spanText);
+                ApplySpanStyling(span, spanDto, resolvedStyle);
+            }
+        }
+        else
+        {
+            // Static text
+            var span = text.Span(spanText);
+            ApplySpanStyling(span, spanDto, resolvedStyle);
+        }
+    }
+
+    /// <summary>
+    /// Renders a page context segment with span-specific styling.
+    /// </summary>
+    private void RenderPageContextSegmentWithSpanStyle(
+        TextDescriptor text,
+        PageContextExpression pageContext,
+        TextSpanDto spanDto,
+        RenderContext context,
+        StyleProperties resolvedStyle
+    )
+    {
+        var sectionName = !string.IsNullOrEmpty(pageContext.SectionName)
+            ? pageContext.SectionName
+            : context.SectionInfo.Name ?? context.CurrentSection ?? string.Empty;
+
+        TextSpanDescriptor? spanDescriptor = pageContext.Variable switch
+        {
+            PageContextVariable.CurrentPage => text.CurrentPageNumber(),
+            PageContextVariable.TotalPages => text.TotalPages(),
+            PageContextVariable.SectionBeginPage when !string.IsNullOrEmpty(sectionName) =>
+                text.BeginPageNumberOfSection(sectionName),
+            PageContextVariable.SectionEndPage when !string.IsNullOrEmpty(sectionName) =>
+                text.EndPageNumberOfSection(sectionName),
+            PageContextVariable.PageWithinSection when !string.IsNullOrEmpty(sectionName) =>
+                text.PageNumberWithinSection(sectionName),
+            PageContextVariable.TotalPagesWithinSection when !string.IsNullOrEmpty(sectionName) =>
+                text.TotalPagesWithinSection(sectionName),
+            _ => null,
+        };
+
+        if (spanDescriptor is null)
+        {
+            Logger.LogWarning(
+                "Unknown or invalid page context variable in span: {Variable}",
+                pageContext.Variable
+            );
+            return;
+        }
+
+        ApplySpanStyling(spanDescriptor, spanDto, resolvedStyle);
     }
 
     /// <summary>

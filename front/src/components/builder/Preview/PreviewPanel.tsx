@@ -97,13 +97,16 @@ function PreviewError({
 
 /**
  * Empty state when no preview is available
+ * Uses the enhanced PreviewEmptyState from common components internally
  */
-function PreviewEmptyState({
+function PreviewEmptyStateInternal({
   onGenerate,
   isLoading,
+  hasComponents,
 }: {
   onGenerate: () => void;
   isLoading: boolean;
+  hasComponents?: boolean;
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
@@ -113,14 +116,32 @@ function PreviewEmptyState({
       <div className="max-w-75 space-y-2">
         <h3 className="font-semibold">No Preview Available</h3>
         <p className="text-muted-foreground text-sm">
-          Add components to the canvas and generate a preview to see your PDF.
+          {hasComponents
+            ? "Click 'Generate Preview' to see your PDF."
+            : "Add components to the canvas and generate a preview to see your PDF."}
         </p>
+      </div>
+      {/* Helpful hints */}
+      <div className="text-muted-foreground max-w-xs space-y-1 text-xs">
+        {hasComponents ? (
+          <>
+            <p className="flex items-center gap-1.5">
+              <kbd className="bg-muted rounded border px-1 py-0.5 font-mono text-[10px]">
+                Ctrl+P
+              </kbd>
+              Generate preview
+            </p>
+            <p>Preview updates automatically when you make changes</p>
+          </>
+        ) : (
+          <p>Start by adding a Column or Row component to the canvas</p>
+        )}
       </div>
       <Button
         variant="default"
         size="sm"
         onClick={onGenerate}
-        disabled={isLoading}
+        disabled={isLoading || !hasComponents}
         className="gap-2"
       >
         {isLoading ? (
@@ -258,6 +279,9 @@ export const PreviewPanel = memo(function PreviewPanel({
 
   // Get page info setter from preview store
   const setPageInfo = usePreviewStore((state) => state.setPageInfo);
+
+  // Check if canvas has components (from canvas store via preview hook)
+  const hasComponents = !!previewUrl || isLoading;
 
   // Handle document load success - update total pages
   const handleDocumentLoadSuccess = useCallback(
@@ -419,7 +443,11 @@ export const PreviewPanel = memo(function PreviewPanel({
 
             {/* Empty state */}
             {!error && !previewUrl && !isLoading && (
-              <PreviewEmptyState onGenerate={refresh} isLoading={isLoading} />
+              <PreviewEmptyStateInternal
+                onGenerate={refresh}
+                isLoading={isLoading}
+                hasComponents={hasComponents}
+              />
             )}
 
             {/* PDF viewer */}

@@ -246,6 +246,93 @@ public class LayoutNode
     }
 
     /// <summary>
+    /// Determines if this node contains any flow control components that may cause issues in non-paginating slots.
+    /// Non-paginating slots (header, footer, background, foreground) do not support page breaks.
+    /// </summary>
+    /// <returns>True if the node tree contains flow control components that require pagination.</returns>
+    public bool ContainsPaginationDependentComponents()
+    {
+        // Check if this node is a pagination-dependent component
+        if (
+            Type
+            is ComponentType.PageBreak
+                or ComponentType.EnsureSpace
+                or ComponentType.StopPaging
+                or ComponentType.ShowOnce
+                or ComponentType.SkipOnce
+        )
+        {
+            return true;
+        }
+
+        // Recursively check children
+        if (Children is not null)
+        {
+            foreach (var child in Children)
+            {
+                if (child.ContainsPaginationDependentComponents())
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Check single child
+        if (Child?.ContainsPaginationDependentComponents() == true)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gets a list of all pagination-dependent component types found in this node tree.
+    /// Useful for validation error messages.
+    /// </summary>
+    /// <returns>A list of component types that depend on pagination.</returns>
+    public IReadOnlyList<ComponentType> GetPaginationDependentComponents()
+    {
+        var result = new List<ComponentType>();
+        CollectPaginationDependentComponents(this, result);
+        return result;
+    }
+
+    private static void CollectPaginationDependentComponents(
+        LayoutNode node,
+        List<ComponentType> result
+    )
+    {
+        if (
+            node.Type
+            is ComponentType.PageBreak
+                or ComponentType.EnsureSpace
+                or ComponentType.StopPaging
+                or ComponentType.ShowOnce
+                or ComponentType.SkipOnce
+        )
+        {
+            if (!result.Contains(node.Type))
+            {
+                result.Add(node.Type);
+            }
+        }
+
+        if (node.Children is not null)
+        {
+            foreach (var child in node.Children)
+            {
+                CollectPaginationDependentComponents(child, result);
+            }
+        }
+
+        if (node.Child is not null)
+        {
+            CollectPaginationDependentComponents(node.Child, result);
+        }
+    }
+
+    /// <summary>
     /// Returns a string representation of the node for debugging.
     /// </summary>
     /// <returns>A debug string.</returns>

@@ -4,6 +4,8 @@
  *
  * Features:
  * - Layout tree state (LayoutNode hierarchy)
+ * - Separate trees for header, content, and footer
+ * - Editing mode switching (content/header/footer)
  * - Component CRUD operations (add, update, delete, move)
  * - Tree traversal utilities
  * - Validation on state mutations
@@ -17,7 +19,11 @@ import {
   isWrapperComponent,
   isLeafComponent,
 } from "@/types/component";
-import type { NodePath, TreeTraversalCallback } from "@/types/canvas";
+import type {
+  NodePath,
+  TreeTraversalCallback,
+  EditingMode,
+} from "@/types/canvas";
 
 // ============================================================================
 // Types
@@ -44,8 +50,14 @@ export interface MutationResult {
  * Canvas store state and actions
  */
 interface CanvasState {
-  // Layout tree
-  root: LayoutNode | null;
+  // Layout trees (separate trees for header, content, footer)
+  root: LayoutNode | null; // Alias for content (backward compatibility)
+  header: LayoutNode | null;
+  content: LayoutNode | null;
+  footer: LayoutNode | null;
+
+  // Current editing mode
+  editingMode: EditingMode;
 
   // Dirty flag for tracking unsaved changes
   isDirty: boolean;
@@ -53,8 +65,16 @@ interface CanvasState {
   // Last operation timestamp
   lastModified: number | null;
 
+  // Editing Mode Actions
+  setEditingMode: (mode: EditingMode) => void;
+  getActiveTree: () => LayoutNode | null;
+  setActiveTree: (tree: LayoutNode | null) => void;
+
   // Actions - CRUD Operations
   setRoot: (root: LayoutNode | null) => void;
+  setHeader: (header: LayoutNode | null) => void;
+  setContent: (content: LayoutNode | null) => void;
+  setFooter: (footer: LayoutNode | null) => void;
   addComponent: (
     parentId: string,
     component: LayoutNode,
@@ -106,6 +126,8 @@ interface CanvasState {
 
   // State Management
   clear: () => void;
+  clearHeader: () => void;
+  clearFooter: () => void;
   loadFromJson: (json: LayoutNode) => void;
   exportToJson: () => LayoutNode | null;
   markClean: () => void;
@@ -439,9 +461,57 @@ export const useCanvasStore = create<CanvasState>()(
   subscribeWithSelector(
     immer((set, get) => ({
       // Initial state
-      root: null,
+      root: null, // Alias for content (backward compatibility)
+      header: null,
+      content: null,
+      footer: null,
+      editingMode: "content" as EditingMode,
       isDirty: false,
       lastModified: null,
+
+      // ========================================================================
+      // Editing Mode Operations
+      // ========================================================================
+
+      setEditingMode: (mode: EditingMode) => {
+        set((state) => {
+          state.editingMode = mode;
+        });
+      },
+
+      getActiveTree: () => {
+        const state = get();
+        switch (state.editingMode) {
+          case "header":
+            return state.header;
+          case "footer":
+            return state.footer;
+          case "content":
+          default:
+            return state.content ?? state.root;
+        }
+      },
+
+      setActiveTree: (tree: LayoutNode | null) => {
+        const mode = get().editingMode;
+        set((state) => {
+          switch (mode) {
+            case "header":
+              state.header = tree;
+              break;
+            case "footer":
+              state.footer = tree;
+              break;
+            case "content":
+            default:
+              state.content = tree;
+              state.root = tree; // Keep root in sync for backward compatibility
+              break;
+          }
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
 
       // ========================================================================
       // CRUD Operations
@@ -450,6 +520,32 @@ export const useCanvasStore = create<CanvasState>()(
       setRoot: (root) => {
         set((state) => {
           state.root = root;
+          state.content = root; // Keep content in sync
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      setHeader: (header) => {
+        set((state) => {
+          state.header = header;
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      setContent: (content) => {
+        set((state) => {
+          state.content = content;
+          state.root = content; // Keep root in sync for backward compatibility
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      setFooter: (footer) => {
+        set((state) => {
+          state.footer = footer;
           state.isDirty = true;
           state.lastModified = Date.now();
         });
@@ -1079,8 +1175,28 @@ export const useCanvasStore = create<CanvasState>()(
       clear: () => {
         set((state) => {
           state.root = null;
+          state.header = null;
+          state.content = null;
+          state.footer = null;
+          state.editingMode = "content";
           state.isDirty = false;
           state.lastModified = null;
+        });
+      },
+
+      clearHeader: () => {
+        set((state) => {
+          state.header = null;
+          state.isDirty = true;
+          state.lastModified = Date.now();
+        });
+      },
+
+      clearFooter: () => {
+        set((state) => {
+          state.footer = null;
+          state.isDirty = true;
+          state.lastModified = Date.now();
         });
       },
 
@@ -1094,6 +1210,7 @@ export const useCanvasStore = create<CanvasState>()(
 
         set((state) => {
           state.root = json;
+          state.content = json; // Keep content in sync
           state.isDirty = false;
           state.lastModified = Date.now();
         });
@@ -1131,6 +1248,27 @@ export const useCanvasStore = create<CanvasState>()(
  * Subscribe to root changes only
  */
 export const useCanvasRoot = () => useCanvasStore((state) => state.root);
+
+/**
+ * Subscribe to header tree changes only
+ */
+export const useCanvasHeader = () => useCanvasStore((state) => state.header);
+
+/**
+ * Subscribe to content tree changes only
+ */
+export const useCanvasContent = () => useCanvasStore((state) => state.content);
+
+/**
+ * Subscribe to footer tree changes only
+ */
+export const useCanvasFooter = () => useCanvasStore((state) => state.footer);
+
+/**
+ * Subscribe to editing mode changes only
+ */
+export const useEditingMode = () =>
+  useCanvasStore((state) => state.editingMode);
 
 /**
  * Subscribe to dirty state only

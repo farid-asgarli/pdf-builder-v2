@@ -60,6 +60,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ComponentTreeEmptyState } from "@/components/common";
 import { cn } from "@/lib/utils";
 import { useCanvasStore } from "@/store/canvas-store";
 import { useSelectionStore } from "@/store/selection-store";
@@ -538,15 +539,8 @@ export function ComponentTree({
             <span className="text-sm font-medium">Components</span>
           </div>
         </div>
-        <div className="flex flex-1 items-center justify-center p-4 text-center">
-          <div className="space-y-2">
-            <Layers className="text-muted-foreground mx-auto h-8 w-8" />
-            <p className="text-muted-foreground text-sm">
-              No components yet.
-              <br />
-              Drag components from the palette to get started.
-            </p>
-          </div>
+        <div className="flex flex-1 items-center justify-center p-4">
+          <ComponentTreeEmptyState />
         </div>
       </div>
     );

@@ -143,17 +143,37 @@ function ShortcutItem({ label, shortcut }: ShortcutItemProps) {
  */
 export function KeyboardShortcutsHelp() {
   const display = useShortcutDisplay();
+  const isMac =
+    typeof navigator !== "undefined" && navigator.platform.includes("Mac");
+  const cmdOrCtrl = isMac ? "⌘" : "Ctrl";
 
-  const shortcuts = [
+  const componentShortcuts = [
     { label: "Copy", shortcut: display.copy },
     { label: "Cut", shortcut: display.cut },
     { label: "Paste", shortcut: display.paste },
     { label: "Delete", shortcut: display.delete },
     { label: "Duplicate", shortcut: display.duplicate },
     { label: "Select All", shortcut: display.selectAll },
+  ];
+
+  const generalShortcuts = [
     { label: "Save", shortcut: display.save },
     { label: "Undo", shortcut: display.undo },
     { label: "Redo", shortcut: display.redo },
+  ];
+
+  const quickAddShortcuts = [
+    { label: "Quick Add Component", shortcut: `${cmdOrCtrl}+/` },
+    { label: "Add Column", shortcut: "c" },
+    { label: "Add Row", shortcut: "r" },
+    { label: "Add Text", shortcut: "t" },
+    { label: "Add Image", shortcut: "i" },
+    { label: "Add Table", shortcut: "b" },
+  ];
+
+  const navigationShortcuts = [
+    { label: "Show Shortcuts", shortcut: "?" },
+    { label: "Generate Preview", shortcut: `${cmdOrCtrl}+P` },
   ];
 
   return (
@@ -161,7 +181,18 @@ export function KeyboardShortcutsHelp() {
       <div className="space-y-1">
         <h4 className="text-sm font-medium">Component Operations</h4>
         <div className="divide-y">
-          {shortcuts.slice(0, 5).map((s) => (
+          {componentShortcuts.map((s) => (
+            <ShortcutItem key={s.label} {...s} />
+          ))}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <h4 className="text-sm font-medium">Quick Add Components</h4>
+        <p className="text-muted-foreground mb-1 text-xs">
+          Use these shortcuts in the Quick Add palette
+        </p>
+        <div className="divide-y">
+          {quickAddShortcuts.map((s) => (
             <ShortcutItem key={s.label} {...s} />
           ))}
         </div>
@@ -169,7 +200,15 @@ export function KeyboardShortcutsHelp() {
       <div className="space-y-1">
         <h4 className="text-sm font-medium">General</h4>
         <div className="divide-y">
-          {shortcuts.slice(5).map((s) => (
+          {generalShortcuts.map((s) => (
+            <ShortcutItem key={s.label} {...s} />
+          ))}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <h4 className="text-sm font-medium">Navigation</h4>
+        <div className="divide-y">
+          {navigationShortcuts.map((s) => (
             <ShortcutItem key={s.label} {...s} />
           ))}
         </div>

@@ -371,12 +371,16 @@ public sealed partial class ExpressionEvaluator : IExpressionEvaluator
             interpreter.SetVariable("data", new ExpandoObject());
             interpreter.SetVariable("page", new PageInfo());
             interpreter.SetVariable("document", new DocumentInfo());
+            interpreter.SetVariable("template", new TemplateInfo());
+            interpreter.SetVariable("section", new SectionInfo());
             interpreter.SetVariable("item", new object());
             interpreter.SetVariable("index", 0);
             interpreter.SetVariable("isFirst", false);
             interpreter.SetVariable("isLast", false);
             interpreter.SetVariable("repeatIndex", 0);
             interpreter.SetVariable("repeatCount", 0);
+            interpreter.SetVariable("currentPage", 1);
+            interpreter.SetVariable("totalPages", 1);
 
             interpreter.Parse(expression);
             return ExpressionValidationResult.Valid(expression);
@@ -422,6 +426,85 @@ public sealed partial class ExpressionEvaluator : IExpressionEvaluator
             $"Expression '{expression}' did not return a collection. Got type: {result.GetType().Name}",
             expression
         );
+    }
+
+    /// <inheritdoc />
+    public bool ContainsPageContextExpressions(string? input)
+    {
+        return PageContextParser.ContainsPageContextExpressions(input);
+    }
+
+    /// <inheritdoc />
+    public IEnumerable<TextSegment> ParseTextWithPageContext(string input, RenderContext context)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(context);
+
+        if (!ContainsExpressions(input))
+        {
+            // No expressions at all - return as static text
+            return [TextSegment.Static(input)];
+        }
+
+        var matches = ExpressionPattern.Matches(input);
+        var segments = new List<TextSegment>();
+        var lastIndex = 0;
+
+        foreach (Match match in matches)
+        {
+            // Add any static text before this match
+            if (match.Index > lastIndex)
+            {
+                var staticText = input.Substring(lastIndex, match.Index - lastIndex);
+                if (!string.IsNullOrEmpty(staticText))
+                {
+                    segments.Add(TextSegment.Static(staticText));
+                }
+            }
+
+            var expression = match.Groups[1].Value.Trim();
+            var pageContextResult = PageContextParser.Parse(expression);
+
+            if (pageContextResult.IsPageContextVariable)
+            {
+                // This is a page context variable - needs QuestPDF native handling
+                segments.Add(TextSegment.PageContextSegment(pageContextResult));
+            }
+            else
+            {
+                // Regular expression - evaluate now
+                string text;
+                try
+                {
+                    var evaluated = Evaluate(expression, context);
+                    text = FormatValue(evaluated);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Failed to evaluate expression '{Expression}', using empty string",
+                        expression
+                    );
+                    text = string.Empty;
+                }
+                segments.Add(TextSegment.Static(text));
+            }
+
+            lastIndex = match.Index + match.Length;
+        }
+
+        // Add any remaining static text after the last match
+        if (lastIndex < input.Length)
+        {
+            var remainingText = input.Substring(lastIndex);
+            if (!string.IsNullOrEmpty(remainingText))
+            {
+                segments.Add(TextSegment.Static(remainingText));
+            }
+        }
+
+        return segments;
     }
 
     /// <summary>

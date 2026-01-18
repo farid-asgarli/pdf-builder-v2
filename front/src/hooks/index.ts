@@ -255,3 +255,26 @@ export {
   type UseTableColumnResizeOptions,
   type UseTableColumnResizeReturn,
 } from "./useTableColumnResize";
+
+// Test Data Hook
+export {
+  useTestData,
+  type ExpressionResolution,
+  type UseTestDataReturn,
+} from "./useTestData";
+
+// Template Loader Hook (API to Store with testData extraction)
+export {
+  useTemplateLoader,
+  useTemplateHasTestData,
+  useTemplateTestDataLoader,
+  type UseTemplateLoaderOptions,
+  type UseTemplateLoaderReturn,
+} from "./useTemplateLoader";
+
+// Quick Add Hook (Component Quick-Add Palette)
+export {
+  useQuickAdd,
+  type UseQuickAddOptions,
+  type UseQuickAddReturn,
+} from "./useQuickAdd";

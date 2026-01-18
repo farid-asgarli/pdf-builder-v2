@@ -92,6 +92,13 @@ export interface MonacoExpressionEditorProps {
   dataFields?: DataField[];
   /** Sample data object to extract fields from (alternative to dataFields) */
   sampleData?: Record<string, unknown>;
+  /**
+   * Current editing mode - affects page variable autocomplete priority
+   * Page variables like currentPage/totalPages are prioritized in header/footer mode
+   */
+  editingMode?: "content" | "header" | "footer";
+  /** Whether to include page context variables in autocomplete (default: true) */
+  includePageVariables?: boolean;
   /** Custom validation function */
   validate?: (value: string) => ExpressionError[];
   /** Whether to use built-in expression validation (default: true) */
@@ -287,6 +294,8 @@ export const MonacoExpressionEditor = memo(function MonacoExpressionEditor({
   height,
   dataFields = [],
   sampleData,
+  editingMode = "content",
+  includePageVariables = true,
   validate,
   useBuiltinValidation = true,
   errors: externalErrors = [],
@@ -415,14 +424,17 @@ export const MonacoExpressionEditor = memo(function MonacoExpressionEditor({
         markersRef.current = model.uri.toString();
       }
 
-      // Register enhanced autocomplete provider for data fields
-      if (effectiveDataFields.length > 0) {
+      // Register enhanced autocomplete provider for data fields and page variables
+      // Always register since page variables should be available even without data fields
+      if (effectiveDataFields.length > 0 || includePageVariables) {
         completionProviderRef.current = registerExpressionAutocomplete(
           monaco,
           LANGUAGE_ID,
           {
             dataFields: effectiveDataFields,
             includeBuiltinFunctions: true,
+            includePageVariables,
+            editingMode,
             triggerCharacters: [".", "{"],
           }
         );
@@ -461,7 +473,15 @@ export const MonacoExpressionEditor = memo(function MonacoExpressionEditor({
       // Call external onMount callback
       onMount?.(editor, monaco);
     },
-    [effectiveDataFields, singleLine, onMount, onFocus, onBlur]
+    [
+      effectiveDataFields,
+      singleLine,
+      includePageVariables,
+      editingMode,
+      onMount,
+      onFocus,
+      onBlur,
+    ]
   );
 
   /**

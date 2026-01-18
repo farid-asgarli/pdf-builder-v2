@@ -35,6 +35,10 @@ export {
   extractDataFieldsFromSampleData,
   BUILTIN_FUNCTIONS,
   EXPRESSION_KEYWORDS,
+  PAGE_VARIABLES,
 } from "./ExpressionAutocomplete";
 
-export type { AutocompleteConfig } from "./ExpressionAutocomplete";
+export type {
+  AutocompleteConfig,
+  PageVariable,
+} from "./ExpressionAutocomplete";

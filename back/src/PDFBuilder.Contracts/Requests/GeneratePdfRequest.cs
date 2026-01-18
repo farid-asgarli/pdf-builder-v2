@@ -8,14 +8,77 @@ namespace PDFBuilder.Contracts.Requests;
 /// Request model for PDF generation.
 /// Contains the layout definition and data context for rendering.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This request supports the full template layout structure with separate
+/// header, content, and footer trees that map to QuestPDF's page slots:
+/// </para>
+/// <list type="bullet">
+///   <item>
+///     <term>Header</term>
+///     <description>Repeats at the top of every page.</description>
+///   </item>
+///   <item>
+///     <term>Content</term>
+///     <description>Primary content that flows across pages.</description>
+///   </item>
+///   <item>
+///     <term>Footer</term>
+///     <description>Repeats at the bottom of every page.</description>
+///   </item>
+///   <item>
+///     <term>Background</term>
+///     <description>Behind all content, spans entire page.</description>
+///   </item>
+///   <item>
+///     <term>Foreground</term>
+///     <description>In front of all content (watermarks).</description>
+///   </item>
+/// </list>
+/// </remarks>
 public class GeneratePdfRequest
 {
     /// <summary>
-    /// Gets or sets the layout tree definition.
+    /// Gets or sets the complete template layout definition.
+    /// Contains page settings, header, content, footer, background, and foreground trees.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// When using the full template layout structure, this property takes precedence
+    /// over the deprecated <see cref="Layout"/> and <see cref="PageSettings"/> properties.
+    /// </para>
+    /// <para>
+    /// Example JSON:
+    /// <code>
+    /// {
+    ///   "templateLayout": {
+    ///     "pageSettings": { "pageSize": "A4", "orientation": "Portrait" },
+    ///     "header": { "type": "Text", "properties": { "content": "Header" } },
+    ///     "content": { "type": "Column", "children": [...] },
+    ///     "footer": { "type": "Text", "properties": { "content": "Page {{ currentPage }} of {{ totalPages }}" } }
+    ///   }
+    /// }
+    /// </code>
+    /// </para>
+    /// </remarks>
+    public TemplateLayoutDto? TemplateLayout { get; set; }
+
+    /// <summary>
+    /// Gets or sets the layout tree definition (content only).
     /// This is the root node of the PDF structure.
     /// </summary>
-    [Required(ErrorMessage = "Layout definition is required")]
-    public LayoutNodeDto Layout { get; set; } = null!;
+    /// <remarks>
+    /// <para>
+    /// <b>Deprecated:</b> For new implementations, use <see cref="TemplateLayout"/> instead
+    /// which provides full support for header, footer, background, and foreground slots.
+    /// </para>
+    /// <para>
+    /// When <see cref="TemplateLayout"/> is provided, this property is ignored.
+    /// When only this property is provided, it will be used as the content layout
+    /// with header/footer determined by <see cref="PageSettings"/>.
+    /// </para>
+    /// </remarks>
+    public LayoutNodeDto? Layout { get; set; }
 
     /// <summary>
     /// Gets or sets the data context for expression evaluation.
@@ -28,6 +91,16 @@ public class GeneratePdfRequest
     /// Gets or sets the page settings for the PDF document.
     /// If not specified, defaults to A4 Portrait with standard margins.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Deprecated:</b> For new implementations, include page settings within
+    /// <see cref="TemplateLayout"/> instead.
+    /// </para>
+    /// <para>
+    /// When <see cref="TemplateLayout"/> is provided with its own PageSettings,
+    /// this property is ignored.
+    /// </para>
+    /// </remarks>
     public PageSettingsDto? PageSettings { get; set; }
 
     /// <summary>
@@ -51,6 +124,49 @@ public class GeneratePdfRequest
     /// Gets or sets optional generation options.
     /// </summary>
     public GenerationOptionsDto? Options { get; set; }
+
+    /// <summary>
+    /// Gets the effective template layout, resolving from either the new
+    /// <see cref="TemplateLayout"/> property or the legacy flat structure.
+    /// </summary>
+    /// <returns>The resolved template layout, or null if neither is provided.</returns>
+    /// <remarks>
+    /// This method provides backward compatibility by converting the legacy
+    /// flat structure (Layout + PageSettings) to the new TemplateLayoutDto format.
+    /// </remarks>
+    public TemplateLayoutDto? GetEffectiveTemplateLayout()
+    {
+        // Prefer the new TemplateLayout if provided
+        if (TemplateLayout is not null)
+        {
+            return TemplateLayout;
+        }
+
+        // Fall back to legacy flat structure
+        if (Layout is not null)
+        {
+            return new TemplateLayoutDto
+            {
+                PageSettings = PageSettings,
+                Content = Layout,
+                Header = null,
+                Footer = null,
+                Background = null,
+                Foreground = null,
+            };
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Validates that the request has required layout information.
+    /// </summary>
+    /// <returns>True if valid layout is provided, false otherwise.</returns>
+    public bool HasValidLayout()
+    {
+        return TemplateLayout?.Content is not null || Layout is not null;
+    }
 }
 
 /// <summary>

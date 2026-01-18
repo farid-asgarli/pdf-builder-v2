@@ -46,11 +46,13 @@ This document outlines the complete development roadmap for the PDF Builder back
 
 #### Domain Models (PDFBuilder.Core)
 
-- [ ] Create `LayoutNode.cs` - Core layout tree structure
+- [ ] Create `LayoutNode.cs` - Core layout tree structure (single node)
+- [ ] Create `TemplateLayout.cs` - Container for header/content/footer trees
+- [ ] Create `PageSettings.cs` - Page configuration (size, orientation, margins, header/footer heights)
 - [ ] Create `ComponentType.cs` - Enum for all 54 component types
-- [ ] Create `RenderContext.cs` - Runtime data container for expressions
+- [ ] Create `RenderContext.cs` - Runtime data container for expressions (includes page context: currentPage, totalPages, etc.)
 - [ ] Create `StyleProperties.cs` - Style inheritance model
-- [ ] Create `Template.cs` - Template entity
+- [ ] Create `Template.cs` - Template entity (stores TemplateLayout as JSON)
 
 #### Interfaces (PDFBuilder.Core)
 
@@ -62,8 +64,19 @@ This document outlines the complete development roadmap for the PDF Builder back
 
 #### DTOs (PDFBuilder.Contracts)
 
-- [ ] Create `LayoutNodeDto.cs` - JSON schema model
-- [ ] Create `GeneratePdfRequest.cs`
+- [ ] Create `LayoutNodeDto.cs` - JSON schema model for individual nodes
+- [ ] Create `TemplateLayoutDto.cs` - Container for header/content/footer trees:
+  ```csharp
+  public class TemplateLayoutDto
+  {
+      public PageSettingsDto PageSettings { get; set; }
+      public LayoutNodeDto? Header { get; set; }
+      public LayoutNodeDto Content { get; set; }
+      public LayoutNodeDto? Footer { get; set; }
+  }
+  ```
+- [ ] Create `PageSettingsDto.cs` - Page configuration (size, orientation, margins, header/footer heights)
+- [ ] Create `GeneratePdfRequest.cs` - Uses TemplateLayoutDto
 - [ ] Create `PdfGenerationResponse.cs`
 - [ ] Create AutoMapper profiles for DTO mapping
 
@@ -102,6 +115,12 @@ This document outlines the complete development roadmap for the PDF Builder back
 - [ ] Support method calls: `{{ data.price.ToString("C") }}`
 - [ ] Support conditionals: `{{ data.isActive ? "Yes" : "No" }}`
 - [ ] Support math: `{{ data.price * 1.15 }}`
+- [ ] **Support page context variables:**
+  - [ ] `{{ currentPage }}` - Current page number (dynamic, QuestPDF provides)
+  - [ ] `{{ totalPages }}` - Total page count (dynamic, QuestPDF provides)
+  - [ ] `{{ section.name }}` - Current section name (from Section component)
+  - [ ] `{{ template.title }}` - Document title (from template metadata)
+  - [ ] `{{ template.createdDate }}` - Template creation date
 - [ ] Implement expression caching for performance
 - [ ] Add comprehensive error handling with helpful messages
 
@@ -146,6 +165,12 @@ This document outlines the complete development roadmap for the PDF Builder back
 - [ ] Integrate expression evaluation for all properties
 - [ ] Implement style inheritance resolution
 - [ ] Add comprehensive logging at each rendering step
+- [ ] **Handle header/footer/content three-tree structure**
+  - [ ] Parse incoming JSON with separate header, content, footer trees
+  - [ ] Use QuestPDF Page.Header(), Page.Content(), Page.Footer() slots
+  - [ ] Render header tree in Page.Header() - repeats on all pages
+  - [ ] Render content tree in Page.Content() - flows with pagination
+  - [ ] Render footer tree in Page.Footer() - repeats on all pages
 
 #### Renderer Infrastructure (PDFBuilder.Engine/Renderers/Base)
 
@@ -258,7 +283,7 @@ This document outlines the complete development roadmap for the PDF Builder back
 
 ### Components to Implement
 
-#### Content Renderers
+#### Container Renderers
 
 - [ ] `LineRenderer.cs` - Horizontal/vertical dividers
 - [ ] `HyperlinkRenderer.cs` - Clickable links
@@ -267,7 +292,10 @@ This document outlines the complete development roadmap for the PDF Builder back
 #### Container Renderers
 
 - [ ] `LayersRenderer.cs` - Stacked planes (watermarks, overlays)
-- [ ] `DecorationRenderer.cs` - Repeating headers/footers
+- [ ] **`DecorationRenderer.cs` - Repeating headers/footers** _(Note: May not be needed if using Page.Header/Footer slots directly in LayoutEngine)_
+  - [ ] Evaluate if Decoration component should wrap entire page or if header/footer trees are rendered directly in QuestPDF Page slots
+  - [ ] If using Decoration: Render header tree in Decoration.Header, content in Decoration.Content, footer in Decoration.Footer
+  - [ ] If using Page slots directly: Header/footer rendering handled in LayoutEngine Phase 3
 
 #### Styling Renderers
 
@@ -356,26 +384,26 @@ This document outlines the complete development roadmap for the PDF Builder back
 
 #### API Controller (PDFBuilder.API/Controllers)
 
-- [x] Create `TemplateController.cs`
-- [x] `GET /api/templates` - List all templates
-- [x] `GET /api/templates/{id}` - Get template by ID
-- [x] `POST /api/templates` - Create template
-- [x] `PUT /api/templates/{id}` - Update template
-- [x] `DELETE /api/templates/{id}` - Delete template
-- [x] `POST /api/templates/{id}/duplicate` - Duplicate template
+- [ ] Create `TemplateController.cs`
+- [ ] `GET /api/templates` - List all templates
+- [ ] `GET /api/templates/{id}` - Get template by ID
+- [ ] `POST /api/templates` - Create template
+- [ ] `PUT /api/templates/{id}` - Update template
+- [ ] `DELETE /api/templates/{id}` - Delete template
+- [ ] `POST /api/templates/{id}/duplicate` - Duplicate template
 
 #### Repository Implementation
 
-- [x] Complete `TemplateRepository.cs` with all CRUD operations
-- [x] Add search/filter capabilities
-- [x] Implement soft delete (optional)
-- [x] Add template categories/tags (optional)
+- [ ] Complete `TemplateRepository.cs` with all CRUD operations
+- [ ] Add search/filter capabilities
+- [ ] Implement soft delete (optional)
+- [ ] Add template categories/tags (optional)
 
 #### DTOs
 
-- [x] Create `SaveTemplateRequest.cs`
-- [x] Create `TemplateResponse.cs`
-- [x] Create `TemplateDto.cs`
+- [ ] Create `SaveTemplateRequest.cs`
+- [ ] Create `TemplateResponse.cs`
+- [ ] Create `TemplateDto.cs`
 
 ### Deliverables
 
@@ -738,3 +766,85 @@ This document outlines the complete development roadmap for the PDF Builder back
 ---
 
 **This is your execution roadmap. Follow it sequentially for best results.**
+
+---
+
+## Header/Footer System Update
+
+**Latest Addition:** Backend support for header/footer/content three-tree structure
+
+**What Changed:**
+
+1. ✅ **Phase 1 - Domain Models:**
+   - Added `TemplateLayout.cs` to contain header/content/footer trees
+   - Added `PageSettings.cs` for page configuration including header/footer heights
+   - Updated `RenderContext.cs` to include page context variables (currentPage, totalPages, etc.)
+   - Updated `Template.cs` to store TemplateLayout
+
+2. ✅ **Phase 1 - DTOs:**
+   - Added `TemplateLayoutDto.cs` for three-tree structure
+   - Added `PageSettingsDto.cs` for page configuration
+   - Updated `GeneratePdfRequest.cs` to use TemplateLayoutDto
+
+3. ✅ **Phase 2 - Expression Evaluator:**
+   - Added support for page context variables:
+     - `{{ currentPage }}` - Current page number
+     - `{{ totalPages }}` - Total page count
+     - `{{ section.name }}` - Current section name
+     - `{{ template.title }}` - Document title
+     - `{{ template.createdDate }}` - Creation date
+
+4. ✅ **Phase 3 - Layout Engine:**
+   - Handle three-tree structure (header, content, footer)
+   - Use QuestPDF Page.Header() for header tree (repeats on all pages)
+   - Use QuestPDF Page.Content() for content tree (flows with pagination)
+   - Use QuestPDF Page.Footer() for footer tree (repeats on all pages)
+   - Inject page context into RenderContext for expression evaluation
+
+5. ✅ **Phase 5 - Tier 2 Components:**
+   - Note on DecorationRenderer - may not be needed if using Page slots directly
+   - Architectural decision: Use QuestPDF Page slots vs Decoration component
+
+**Why This Matters:**
+
+- Professional documents (insurance contracts, reports) require headers and footers
+- Headers typically contain: company logo, document title, date
+- Footers typically contain: page numbers, legal disclaimers, contact info
+- These repeat on every page and need special handling
+- Page numbers require dynamic evaluation (different on each page)
+
+**QuestPDF Implementation:**
+
+```csharp
+// In LayoutEngine.cs
+document.Page(page =>
+{
+    page.Size(PageSize.A4);
+    page.Margin(margins);
+
+    // Header (repeats on all pages)
+    page.Header().Element(container =>
+    {
+        RenderLayoutTree(headerTree, container, renderContext);
+    });
+
+    // Content (flows with pagination)
+    page.Content().Element(container =>
+    {
+        RenderLayoutTree(contentTree, container, renderContext);
+    });
+
+    // Footer (repeats on all pages)
+    page.Footer().Element(container =>
+    {
+        RenderLayoutTree(footerTree, container, renderContext);
+    });
+});
+```
+
+**Frontend Coordination Required:**
+
+- Frontend sends three separate trees in JSON
+- Frontend provides page settings (margins, header/footer heights)
+- Frontend users can edit header/footer separately from content
+- See frontend architecture document for UI details

@@ -161,3 +161,64 @@ export function mapBackendStatus(isActive: boolean): TemplateStatus {
 export function mapFrontendStatus(status: TemplateStatus): boolean {
   return status === "published";
 }
+
+/**
+ * Convert backend TemplateDto to frontend Template model
+ * Extracts testData from metadata.testData
+ */
+export function fromTemplateDto(dto: import("./api").TemplateDto): Template {
+  // Extract testData from metadata if present
+  const testData =
+    dto.metadata &&
+    typeof dto.metadata === "object" &&
+    "testData" in dto.metadata
+      ? (dto.metadata.testData as Record<string, unknown>)
+      : undefined;
+
+  // Create default layout if not present
+  const defaultLayout: LayoutNode = {
+    id: "root",
+    type: "Column",
+    properties: {},
+    children: [],
+    parentId: undefined,
+  };
+
+  return {
+    id: dto.id,
+    name: dto.name,
+    description: dto.description,
+    status: mapBackendStatus(dto.isActive),
+    category: dto.category,
+    tags: dto.tags ? dto.tags.split(",").filter(Boolean) : undefined,
+    layout: dto.layout ? fromLayoutNodeDto(dto.layout) : defaultLayout,
+    testData,
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
+    createdBy: dto.createdBy,
+    version: dto.version,
+  };
+}
+
+/**
+ * Convert frontend Template to backend SaveTemplateRequest
+ * Stores testData in metadata.testData
+ */
+export function toSaveTemplateRequest(
+  template: Template
+): import("./api").SaveTemplateRequest {
+  // Build metadata with testData if present
+  const metadata: Record<string, unknown> = {};
+  if (template.testData && Object.keys(template.testData).length > 0) {
+    metadata.testData = template.testData;
+  }
+
+  return {
+    name: template.name,
+    description: template.description,
+    category: template.category,
+    layout: toLayoutNodeDto(template.layout),
+    tags: template.tags?.join(","),
+    ...(Object.keys(metadata).length > 0 && { metadata }),
+  };
+}

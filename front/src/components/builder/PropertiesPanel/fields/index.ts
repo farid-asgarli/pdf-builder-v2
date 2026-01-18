@@ -38,6 +38,9 @@ export type { SliderFieldProps } from "./SliderField";
 export { ToggleField } from "./ToggleField";
 export type { ToggleFieldProps } from "./ToggleField";
 
+export { ExpressionPreview } from "./ExpressionPreview";
+export type { ExpressionPreviewProps } from "./ExpressionPreview";
+
 // Table Cell Editing Components
 export { default as TableCellEditorModal } from "./TableCellEditorModal";
 export type { TableCellEditorModalProps } from "./TableCellEditorModal";

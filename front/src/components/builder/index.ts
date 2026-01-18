@@ -79,3 +79,38 @@ export {
   KeyboardShortcutsActions,
   KeyboardShortcutsDialog,
 } from "./KeyboardShortcuts";
+
+// TestData Panel
+export { TestDataPanel } from "./TestData";
+export type { TestDataPanelProps } from "./TestData";
+
+// Quick Add Palette
+export { QuickAddPalette } from "./QuickAdd";
+export type { QuickAddPaletteProps } from "./QuickAdd";
+
+// Page Context (Page Variables and Expression Helpers)
+export { PageVariables, PageExpressionHelper } from "./PageContext";
+export type {
+  PageVariablesProps,
+  PageExpressionHelperProps,
+} from "./PageContext";
+
+// Canvas Mode Selector (Content/Header/Footer editing mode)
+export {
+  CanvasModeSelector,
+  ModeTab,
+  ModeIndicator,
+  CompactModeIndicator,
+  MODE_CONFIGS,
+} from "./CanvasModeSelector";
+export type {
+  CanvasModeSelectorProps,
+  ModeConfig,
+  ModeTabProps,
+  ModeIndicatorProps,
+  CompactModeIndicatorProps,
+} from "./CanvasModeSelector";
+
+// Header/Footer Editor (Specialized editors for headers and footers)
+export { HeaderEditor, HeaderEditorDefault } from "./HeaderFooterEditor";
+export type { HeaderEditorProps } from "./HeaderFooterEditor";

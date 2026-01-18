@@ -75,6 +75,79 @@ public interface IPdfGenerator
         object? data = null,
         CancellationToken cancellationToken = default
     );
+
+    #region TemplateLayout Overloads (Header/Footer/Content Support)
+
+    /// <summary>
+    /// Generates a PDF document from a complete template layout with header, content, footer,
+    /// background, and foreground support.
+    /// </summary>
+    /// <param name="templateLayout">The template layout containing all page slots.</param>
+    /// <param name="data">The data object for expression evaluation.</param>
+    /// <param name="options">Optional PDF generation options.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The generated PDF as a byte array.</returns>
+    /// <remarks>
+    /// <para>
+    /// The template layout maps to QuestPDF's page structure:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><term>Header</term><description>Rendered at the top of every page via page.Header().</description></item>
+    ///   <item><term>Content</term><description>Primary content that flows across pages via page.Content().</description></item>
+    ///   <item><term>Footer</term><description>Rendered at the bottom of every page via page.Footer().</description></item>
+    ///   <item><term>Background</term><description>Rendered behind all content via page.Background().</description></item>
+    ///   <item><term>Foreground</term><description>Rendered in front of all content via page.Foreground().</description></item>
+    /// </list>
+    /// </remarks>
+    Task<byte[]> GeneratePdfFromTemplateLayoutAsync(
+        TemplateLayout templateLayout,
+        object? data = null,
+        PdfGenerationOptions? options = null,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    /// Generates a PDF document from a complete template layout and writes it to a stream.
+    /// </summary>
+    /// <param name="templateLayout">The template layout containing all page slots.</param>
+    /// <param name="outputStream">The stream to write the PDF to.</param>
+    /// <param name="data">The data object for expression evaluation.</param>
+    /// <param name="options">Optional PDF generation options.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task GeneratePdfFromTemplateLayoutAsync(
+        TemplateLayout templateLayout,
+        Stream outputStream,
+        object? data = null,
+        PdfGenerationOptions? options = null,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    /// Validates a template layout before generation without producing a PDF.
+    /// Validates all slots: header, content, footer, background, and foreground.
+    /// </summary>
+    /// <param name="templateLayout">The template layout to validate.</param>
+    /// <param name="data">Optional data object to validate expressions against.</param>
+    /// <returns>The validation result.</returns>
+    Task<PdfValidationResult> ValidateTemplateLayoutAsync(
+        TemplateLayout templateLayout,
+        object? data = null
+    );
+
+    /// <summary>
+    /// Gets metadata about the PDF that would be generated from a template layout.
+    /// </summary>
+    /// <param name="templateLayout">The template layout.</param>
+    /// <param name="data">The data object for expression evaluation.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Metadata about the PDF that would be generated.</returns>
+    Task<PdfMetadata> GetTemplateLayoutMetadataAsync(
+        TemplateLayout templateLayout,
+        object? data = null,
+        CancellationToken cancellationToken = default
+    );
+
+    #endregion
 }
 
 /// <summary>
